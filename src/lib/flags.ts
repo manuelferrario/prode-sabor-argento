@@ -2,12 +2,14 @@
 export function isoToFlag(code: string): string {
   // Casos especiales (no tienen código ISO estándar de 2 letras)
   const special: Record<string, string> = {
-    EN: '🇬🇧',  // Inglaterra — tag emoji no soportado en todos lados
+    EN:  '🇬🇧',  // Inglaterra
     SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
     WAL: '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
     TBD: '🏳',
-    TB: '🏳',
-    CU: '🇨🇼', // Curaçao
+    TB:  '🏳',
+    // Códigos incorrectos del seed → corregidos acá como fallback
+    SW:  '🇸🇪',  // Sweden (guardado como SW en lugar de SE)
+    CU:  '🇨🇼',  // Curaçao
   }
   if (special[code]) return special[code]
   if (code.length !== 2) return '🏳'
