@@ -27,7 +27,7 @@ const PRIZES = [
     color: '#cd7f32',
     border: 'rgba(205,127,50,0.3)',
     bg: 'rgba(205,127,50,0.05)',
-    items: ['3 Chimis 🫙🫙🫙'],
+    items: ['5 Chimis 🫙🫙🫙🫙🫙'],
   },
 ]
 
@@ -42,7 +42,7 @@ const PRIZE_PHOTOS: { src: string; label: string }[] = [
 
 function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
   return (
-    <div className="max-w-sm mx-auto flex flex-col gap-3">
+    <div className="max-w-sm mx-auto flex flex-col gap-5">
       {prizes.map(({ rank, medal, color, border, bg, items }, i) => {
         const isFirst = i === 0
         return (
@@ -68,9 +68,9 @@ function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
                   <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)' }}>★ TOP ★</span>
                 )}
               </div>
-              <ul className="flex flex-col gap-2">
+              <ul className="flex flex-col gap-2.5">
                 {items.map(item => (
-                  <li key={item} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px' }}>
+                  <li key={item} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px' }}>
                     <span style={{ color, fontWeight: 'bold', fontSize: '16px' }}>›</span>
                     {item}
                   </li>
@@ -85,7 +85,7 @@ function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
                 border: `1px solid ${border}`,
                 borderTop: 'none',
               }}>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {PRIZE_PHOTOS.map(({ src, label }) => (
                     <div key={label} className="overflow-hidden"
                       style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
@@ -237,7 +237,7 @@ export default function HomePage() {
       </section>
 
       {/* PREMIOS — sección hero, bien visible */}
-      <section className="px-4 pt-10 pb-6 border-t" style={{ borderColor: 'var(--border)' }}>
+      <section className="px-5 pt-12 pb-8 border-t" style={{ borderColor: 'var(--border)' }}>
 
         {/* Título premios */}
         <div className="text-center mb-8">
@@ -261,18 +261,18 @@ export default function HomePage() {
       </section>
 
       {/* CÓMO FUNCIONA — al final, más chico */}
-      <section className="px-4 py-8 border-t" style={{ borderColor: 'var(--border)' }}>
-        <p className="font-pixel text-center text-white/25 mb-6 tracking-widest" style={{ fontSize: '9px' }}>
+      <section className="px-5 py-10 border-t" style={{ borderColor: 'var(--border)' }}>
+        <p className="font-pixel text-center text-white/25 mb-7 tracking-widest" style={{ fontSize: '9px' }}>
           — COMO FUNCIONA —
         </p>
-        <div className="max-w-sm mx-auto flex flex-col gap-2">
+        <div className="max-w-sm mx-auto flex flex-col gap-3">
           {[
             { icon: '📝', step: '01', title: 'REGISTRATE', desc: 'Nombre, teléfono y mail. Gratis.' },
             { icon: '⚽', step: '02', title: 'CARGA TU PRODE', desc: 'Predeci partidos de Argentina, Brasil, Espana y mas.' },
             { icon: '🫙', step: '03', title: 'SUMA CHIMICHURROS', desc: 'Los chimichurros son tus puntos. Exacto = 3 · Ganador = 1' },
             { icon: '🏆', step: '04', title: 'GANATE LOS PREMIOS', desc: 'Los del podio se llevan lo mejor de Sabor Argento.' },
           ].map(({ icon, step, title, desc }, i) => (
-            <div key={step} className={`flex items-center gap-3 p-3 anim-reveal-${i+1}`}
+            <div key={step} className={`flex items-center gap-4 p-4 anim-reveal-${i+1}`}
               style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--celeste)' }}>
               <span className="font-pixel flex-shrink-0" style={{ color: 'var(--celeste)', fontSize: '9px', minWidth: '18px' }}>{step}</span>
               <span className="text-xl flex-shrink-0">{icon}</span>
@@ -287,7 +287,7 @@ export default function HomePage() {
 
       {/* Instagram CTA — bloque llamativo */}
       <section
-        className="mx-4 mb-6 p-5 text-center"
+        className="mx-5 mb-8 p-6 text-center"
         style={{
           background: 'linear-gradient(135deg, rgba(116,172,223,0.12) 0%, rgba(116,172,223,0.05) 100%)',
           border: '1.5px solid rgba(116,172,223,0.25)',

@@ -134,7 +134,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
         </div>
       </div>
 
-      <div className="px-4 py-5 max-w-lg mx-auto">
+      <div className="px-5 py-6 max-w-lg mx-auto">
         {/* Bienvenida */}
         <div className="mb-5">
           <h1 className="font-brand text-white" style={{ fontSize: '36px', fontWeight: 900, lineHeight: 1 }}>
@@ -252,7 +252,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                 {ROUND_LABELS[round] ?? round}
               </h2>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-4">
                 {roundMatches.map(match => {
                   const locked = isLocked(match)
                   const pred = predMap[match.id]
