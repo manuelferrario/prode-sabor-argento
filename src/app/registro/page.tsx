@@ -82,15 +82,29 @@ export default function RegistroPage() {
       }
     }
 
-    // Verificar si el email ya está registrado
-    const { data: existing } = await supabase
+    // Verificar email duplicado
+    const { data: existingEmail } = await supabase
       .from('participants')
       .select('id')
       .eq('email', form.email)
       .single()
 
-    if (existing) {
+    if (existingEmail) {
       setError('Ese email ya está registrado. ¿Querés ingresar?')
+      setLoading(false)
+      return
+    }
+
+    // Verificar teléfono duplicado
+    const phoneClean = form.phone.replace(/\s/g, '')
+    const { data: existingPhone } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('phone', phoneClean)
+      .single()
+
+    if (existingPhone) {
+      setError('Ese número de teléfono ya está registrado con otra cuenta.')
       setLoading(false)
       return
     }
@@ -112,12 +126,12 @@ export default function RegistroPage() {
       return
     }
 
-    // Insertar en participants
+    // Insertar en participants — teléfono normalizado sin espacios
     const { error: insertError } = await supabase
       .from('participants')
       .insert({
         name: form.name,
-        phone: form.phone,
+        phone: phoneClean,
         email: form.email,
         apodo: form.apodo.trim() || null,
         instagram_confirmed: form.instagram,
