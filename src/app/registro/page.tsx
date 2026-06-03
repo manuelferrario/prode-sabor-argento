@@ -38,6 +38,7 @@ export default function RegistroPage() {
     password2: '',
     apodo: '',
     instagram: false,
+    instagramUser: '',
   })
 
   useEffect(() => { setDeviceId(getDeviceId()) }, [])
@@ -52,6 +53,10 @@ export default function RegistroPage() {
 
     if (!form.instagram) {
       setError('Tenés que seguir a @saborargentoar en Instagram para participar.')
+      return
+    }
+    if (!form.instagramUser.trim()) {
+      setError('Ingresá tu usuario de Instagram para que podamos verificarlo.')
       return
     }
     if (form.password.length < 6) {
@@ -135,6 +140,7 @@ export default function RegistroPage() {
         email: form.email,
         apodo: form.apodo.trim() || null,
         instagram_confirmed: form.instagram,
+        instagram_user: form.instagramUser.trim().replace('@', ''),
         device_id: deviceId || null,
       })
 
@@ -375,19 +381,44 @@ export default function RegistroPage() {
                 </button>
               )}
 
-              {/* Confirmado */}
+              {/* Confirmado → pedir usuario de IG */}
               {form.instagram && (
-                <div className="flex items-center gap-2 py-2">
-                  <span className="text-xl">✅</span>
-                  <span className="text-white/80 text-sm font-semibold">Seguís a @saborargentoar</span>
-                  <button
-                    type="button"
-                    onClick={() => setForm(f => ({ ...f, instagram: false }))}
-                    className="ml-auto text-white/30 text-xs hover:text-white/60"
-                  >
-                    deshacer
-                  </button>
-                </div>
+                <>
+                  <div className="flex items-center gap-2 py-1">
+                    <span className="text-xl">✅</span>
+                    <span className="text-white/80 text-sm font-semibold">Seguís a @saborargentoar</span>
+                    <button
+                      type="button"
+                      onClick={() => setForm(f => ({ ...f, instagram: false, instagramUser: '' }))}
+                      className="ml-auto text-white/30 text-xs hover:text-white/60"
+                    >
+                      deshacer
+                    </button>
+                  </div>
+
+                  {/* Campo usuario IG */}
+                  <div>
+                    <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+                      TU USUARIO DE INSTAGRAM
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-semibold text-sm">@</span>
+                      <input
+                        type="text"
+                        required
+                        placeholder="tu_usuario"
+                        value={form.instagramUser}
+                        onChange={e => setForm(f => ({ ...f, instagramUser: e.target.value.replace('@', '') }))}
+                        style={{ ...inputStyle, paddingLeft: '28px' }}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-xs" style={{ color: 'var(--celeste)' }}>
+                      Lo verificamos antes de entregar los premios
+                    </p>
+                  </div>
+                </>
               )}
 
               <p className="text-white/30 text-xs">
