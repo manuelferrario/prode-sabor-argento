@@ -1,65 +1,328 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link'
+import { PixelChimi } from '@/components/PixelChimi'
+import { PixelSprite, getRandomSprites, SSR_SPRITES, type FlyingConfig } from '@/components/PixelSprites'
+import { useState, useEffect } from 'react'
 
-export default function Home() {
+const PRIZES = [
+  {
+    rank: '1°',
+    medal: '🥇',
+    color: 'var(--dorado)',
+    border: 'rgba(246,180,14,0.4)',
+    bg: 'rgba(246,180,14,0.07)',
+    items: ['Camiseta oficial Argentina 🇦🇷', 'Tabla de madera 🪵', 'Chapa parrillera 🔥', '5 Chimis 🫙🫙🫙🫙🫙'],
+  },
+  {
+    rank: '2°',
+    medal: '🥈',
+    color: '#c0c0c0',
+    border: 'rgba(192,192,192,0.3)',
+    bg: 'rgba(192,192,192,0.05)',
+    items: ['Tabla de madera 🪵', '4 Chimis 🫙🫙🫙🫙'],
+  },
+  {
+    rank: '3°',
+    medal: '🥉',
+    color: '#cd7f32',
+    border: 'rgba(205,127,50,0.3)',
+    bg: 'rgba(205,127,50,0.05)',
+    items: ['3 Chimis 🫙🫙🫙'],
+  },
+]
+
+// Fotos del 1° premio — nombres de archivo en /public/premios/
+// Actualizá esta lista cuando subas las fotos reales
+const PRIZE_PHOTOS: { src: string; label: string }[] = [
+  { src: '/remera-messi.jpeg',      label: 'Camiseta Argentina' },
+  { src: '/tabla-de-madera.jpeg',   label: 'Tabla de madera' },
+  { src: '/chapa-parrillera.jpeg',  label: 'Chapa parrillera' },
+  { src: '/5-chimis.jpeg',          label: '5 Chimis Sabor Argento' },
+]
+
+function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="max-w-sm mx-auto flex flex-col gap-3">
+      {prizes.map(({ rank, medal, color, border, bg, items }, i) => {
+        const isFirst = i === 0
+        return (
+          <div key={rank}>
+            {/* Card del premio */}
+            <div
+              className={`p-4 anim-reveal-${Math.min(i+1,4)}`}
+              style={{
+                background: bg,
+                border: `2px solid ${border}`,
+                boxShadow: `0 4px 0 ${border}`,
+              }}
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              <div className="flex items-center gap-3 mb-3 pb-2" style={{ borderBottom: `1px solid ${border}` }}>
+                <span style={{ fontSize: isFirst ? '40px' : '32px' }}>{medal}</span>
+                <div className="flex-1">
+                  <p className="font-pixel text-white/30" style={{ fontSize: '8px', letterSpacing: '2px' }}>PUESTO</p>
+                  <p className="font-brand leading-none" style={{ fontSize: isFirst ? '44px' : '36px', fontWeight: 900, color, lineHeight: 1 }}>
+                    {rank}
+                  </p>
+                </div>
+                {isFirst && (
+                  <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)' }}>★ TOP ★</span>
+                )}
+              </div>
+              <ul className="flex flex-col gap-2">
+                {items.map(item => (
+                  <li key={item} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '14px' }}>
+                    <span style={{ color, fontWeight: 'bold', fontSize: '16px' }}>›</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Fotos del 1° premio — siempre visibles debajo */}
+            {isFirst && (
+              <div className="mt-2 p-3" style={{
+                background: 'rgba(246,180,14,0.05)',
+                border: `1px solid ${border}`,
+                borderTop: 'none',
+              }}>
+                <div className="grid grid-cols-2 gap-2">
+                  {PRIZE_PHOTOS.map(({ src, label }) => (
+                    <div key={label} className="overflow-hidden"
+                      style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={label}
+                        style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }}
+                        onError={(e) => {
+                          // Mientras no haya fotos, muestra placeholder con emoji
+                          const el = e.currentTarget.parentElement!
+                          e.currentTarget.style.display = 'none'
+                          if (!el.querySelector('.ph')) {
+                            el.innerHTML = `<div class="ph" style="height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04)"><span style="font-size:28px">📸</span><span style="color:rgba(255,255,255,0.3);font-size:10px">${label}</span></div>`
+                          }
+                        }}
+                      />
+                      <p className="text-white/50 text-center py-1" style={{ fontSize: '10px' }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export default function HomePage() {
+  // SSR: sprites fijos variados. Client: reemplaza con random en cada visita.
+  const [sprites, setSprites] = useState<FlyingConfig[]>(SSR_SPRITES)
+  useEffect(() => { setSprites(getRandomSprites()) }, [])
+
+  return (
+    <main className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+
+      {/* Header */}
+      <header
+        className="flex items-center justify-between px-4 py-2 border-b"
+        style={{ borderColor: 'var(--border)', background: 'var(--negro)' }}
+      >
+        <div className="flex items-center gap-2">
+          <PixelChimi size={3} />
+          <span className="font-brand text-white tracking-wide" style={{ fontSize: '20px', fontWeight: 900 }}>
+            SABOR ARGENTO
+          </span>
+        </div>
+        <Link href="/ranking" className="font-pixel text-white/50 hover:text-white transition-colors" style={{ fontSize: '9px' }}>
+          RANKING
+        </Link>
+      </header>
+
+      {/* HERO */}
+      <section
+        className="relative flex flex-col items-center justify-center px-4 pt-14 pb-10 text-center overflow-hidden hero-gradient"
+      >
+        {/* Rayas de fondo */}
+        <div className="absolute inset-0 opacity-[0.07]" style={{
+          backgroundImage: 'repeating-linear-gradient(0deg, white 0px, white 1px, transparent 1px, transparent 32px)'
+        }} />
+        {/* Círculo de luz */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-20"
+          style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+        {/* Sprites voladores — capa outer maneja X, capa inner maneja hover */}
+        <div className="chimi-container">
+          {sprites.map((s, i) => (
+            <div
+              key={i}
+              className="flying-sprite"
+              style={{
+                top: s.top,
+                animation: `${s.animName} ${s.duration} linear ${s.delay} infinite`,
+              }}
             >
-              Learning
-            </a>{" "}
-            center.
+              {/* Inner: hover deflect SIN tocar el translateX del padre */}
+              <div className="flying-sprite-inner">
+                <PixelSprite type={s.type} size={s.size} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Wrapper: todo el texto del hero con z-index 2 para quedar SOBRE los sprites */}
+        <div className="relative flex flex-col items-center text-center" style={{ zIndex: 2 }}>
+
+        {/* 3 estrellas */}
+        <div className="flex gap-4 mb-4">
+          {[0,1,2].map(i => (
+            <span key={i} className={`text-3xl anim-star-${i+1}`}
+              style={{ color: 'var(--dorado)', filter: 'drop-shadow(0 2px 8px rgba(246,180,14,0.8))' }}>
+              ★
+            </span>
+          ))}
+        </div>
+
+        {/* Título hero */}
+        <h1 className="relative font-brand text-white leading-[0.88] anim-hero-1"
+          style={{ fontSize: 'clamp(72px, 22vw, 140px)', fontWeight: 900,
+            textShadow: '3px 5px 0 rgba(0,0,0,0.45), 0 0 60px rgba(0,0,0,0.25)' }}>
+          SIN CHIMI
+        </h1>
+        <h2 className="relative font-brand text-white leading-[0.88] anim-hero-2"
+          style={{ fontSize: 'clamp(72px, 22vw, 140px)', fontWeight: 900,
+            textShadow: '3px 5px 0 rgba(0,0,0,0.45)' }}>
+          NO HAY
+        </h2>
+        <h3 className="relative font-brand leading-[0.88] mb-5 anim-hero-3"
+          style={{ fontSize: 'clamp(72px, 22vw, 140px)', fontWeight: 900,
+            color: 'var(--dorado)',
+            textShadow: '3px 5px 0 rgba(0,0,0,0.5), 0 0 40px rgba(246,180,14,0.35)' }}>
+          MUNDIAL.
+        </h3>
+
+        {/* Badge pixel */}
+        <div className="relative font-pixel text-white/80 mb-2 px-4 py-2 anim-hero-badge"
+          style={{ background: 'rgba(0,0,0,0.3)', fontSize: '9px', letterSpacing: '2px',
+            border: '1px solid rgba(255,255,255,0.15)', borderRadius: '2px' }}>
+          PRODE OFICIAL · MUNDIAL 2026
+        </div>
+
+        {/* CTA con glow animado */}
+        <Link href="/registro"
+          className="relative font-brand text-white anim-hero-cta btn-cta-glow active:scale-95 hover:opacity-95 transition-all"
+          style={{
+            fontSize: '26px', fontWeight: 900, letterSpacing: '3px',
+            background: 'var(--negro)', border: '3px solid var(--dorado)',
+            padding: '12px 40px', display: 'inline-block',
+          }}>
+          PARTICIPAR GRATIS
+        </Link>
+
+        <p className="mt-4 text-white/70 text-sm anim-hero-cta">
+          Ya jugás?{' '}
+          <Link href="/login" className="underline font-semibold text-white hover:opacity-80">
+            Entrá a tu prode
+          </Link>
+        </p>
+
+        </div>{/* fin wrapper z-index:2 */}
+
+        {/* Franja bandera argentina */}
+        <div className="absolute bottom-0 left-0 right-0 flex" style={{ height: '5px' }}>
+          <div className="flex-1" style={{ background: 'rgba(0,0,0,0.2)' }} />
+          <div className="flex-1" style={{ background: 'rgba(255,255,255,0.4)' }} />
+          <div className="flex-1" style={{ background: 'rgba(0,0,0,0.2)' }} />
+        </div>
+      </section>
+
+      {/* PREMIOS — sección hero, bien visible */}
+      <section className="px-4 pt-10 pb-6 border-t" style={{ borderColor: 'var(--border)' }}>
+
+        {/* Título premios */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-3 px-6 py-3 mb-4" style={{
+            background: 'rgba(246,180,14,0.1)',
+            border: '2px solid rgba(246,180,14,0.4)',
+            boxShadow: '0 4px 0 rgba(200,146,11,0.5)',
+          }}>
+            <span className="text-2xl">🏆</span>
+            <span className="font-brand text-white" style={{ fontSize: '34px', fontWeight: 900, letterSpacing: '3px' }}>
+              PREMIOS
+            </span>
+            <span className="text-2xl">🏆</span>
+          </div>
+          <p className="font-pixel text-white/35 mt-3" style={{ fontSize: '8px', letterSpacing: '2px' }}>
+            LOS MEJORES DEL RANKING SE LLEVAN TODO
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <PrizePodium prizes={PRIZES} />
+      </section>
+
+      {/* CÓMO FUNCIONA — al final, más chico */}
+      <section className="px-4 py-8 border-t" style={{ borderColor: 'var(--border)' }}>
+        <p className="font-pixel text-center text-white/25 mb-6 tracking-widest" style={{ fontSize: '9px' }}>
+          — COMO FUNCIONA —
+        </p>
+        <div className="max-w-sm mx-auto flex flex-col gap-2">
+          {[
+            { icon: '📝', step: '01', title: 'REGISTRATE', desc: 'Nombre, teléfono y mail. Gratis.' },
+            { icon: '⚽', step: '02', title: 'CARGA TU PRODE', desc: 'Predeci partidos de Argentina, Brasil, Espana y mas.' },
+            { icon: '🫙', step: '03', title: 'SUMA CHIMICHURROS', desc: 'Los chimichurros son tus puntos. Exacto = 3 · Ganador = 1' },
+            { icon: '🏆', step: '04', title: 'GANATE LOS PREMIOS', desc: 'Los del podio se llevan lo mejor de Sabor Argento.' },
+          ].map(({ icon, step, title, desc }, i) => (
+            <div key={step} className={`flex items-center gap-3 p-3 anim-reveal-${i+1}`}
+              style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderLeft: '3px solid var(--celeste)' }}>
+              <span className="font-pixel flex-shrink-0" style={{ color: 'var(--celeste)', fontSize: '9px', minWidth: '18px' }}>{step}</span>
+              <span className="text-xl flex-shrink-0">{icon}</span>
+              <div>
+                <p className="font-brand text-white" style={{ fontSize: '18px', fontWeight: 900, lineHeight: 1.1 }}>{title}</p>
+                <p className="text-white/40 text-xs mt-0.5">{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
-      </main>
-    </div>
-  );
+      </section>
+
+      {/* Instagram CTA — bloque llamativo */}
+      <section
+        className="mx-4 mb-6 p-5 text-center"
+        style={{
+          background: 'linear-gradient(135deg, rgba(116,172,223,0.12) 0%, rgba(116,172,223,0.05) 100%)',
+          border: '1.5px solid rgba(116,172,223,0.25)',
+        }}
+      >
+        <p className="text-white/50 text-xs mb-2 font-pixel" style={{ fontSize: '8px', letterSpacing: '1px' }}>
+          PARA PARTICIPAR DEL SORTEO
+        </p>
+        <p className="text-white/70 text-sm mb-2">seguí en Instagram a</p>
+        <a
+          href="https://www.instagram.com/saborargentoar/"
+          target="_blank" rel="noopener noreferrer"
+          className="font-brand hover-lift inline-block transition-all hover:opacity-90"
+          style={{
+            fontSize: '32px', fontWeight: 900,
+            color: 'var(--celeste)',
+            textShadow: '0 0 20px rgba(116,172,223,0.5)',
+            letterSpacing: '1px',
+          }}
+        >
+          @SABORARGENTOAR
+        </a>
+      </section>
+
+      <footer className="px-4 py-5 text-center border-t" style={{ borderColor: 'var(--border)' }}>
+        {/* Franja bandera pequeña */}
+        <div className="flex h-0.5 mb-4 max-w-xs mx-auto">
+          <div className="flex-1" style={{ background: 'var(--celeste)' }} />
+          <div className="flex-1 bg-white" />
+          <div className="flex-1" style={{ background: 'var(--celeste)' }} />
+        </div>
+        <p className="font-pixel text-white/20" style={{ fontSize: '7px', letterSpacing: '1px' }}>
+          PRODE SABOR ARGENTO · MUNDIAL 2026 · HECHO EN ARGENTINA 🇦🇷
+        </p>
+      </footer>
+    </main>
+  )
 }
