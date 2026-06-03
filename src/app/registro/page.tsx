@@ -22,19 +22,34 @@ export default function RegistroPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [deviceId, setDeviceId] = useState('')
+
+  // Password visibility
+  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword2, setShowPassword2] = useState(false)
+
+  // Instagram flow: abrió IG → puede confirmar
+  const [igOpened, setIgOpened] = useState(false)
+
   const [form, setForm] = useState({
     name: '',
     phone: '',
     email: '',
     password: '',
+    password2: '',
     apodo: '',
     instagram: false,
   })
 
   useEffect(() => { setDeviceId(getDeviceId()) }, [])
 
+  function openInstagram() {
+    window.open('https://www.instagram.com/saborargentoar/', '_blank')
+    setIgOpened(true)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+
     if (!form.instagram) {
       setError('Tenés que seguir a @saborargentoar en Instagram para participar.')
       return
@@ -43,6 +58,11 @@ export default function RegistroPage() {
       setError('La contraseña debe tener al menos 6 caracteres.')
       return
     }
+    if (form.password !== form.password2) {
+      setError('Las contraseñas no coinciden. Revisalas.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -75,7 +95,7 @@ export default function RegistroPage() {
       return
     }
 
-    // 1. Crear usuario en Supabase Auth
+    // Crear usuario en Supabase Auth
     const { error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -92,7 +112,7 @@ export default function RegistroPage() {
       return
     }
 
-    // 2. Insertar en participants
+    // Insertar en participants
     const { error: insertError } = await supabase
       .from('participants')
       .insert({
@@ -110,14 +130,13 @@ export default function RegistroPage() {
       return
     }
 
-    // 3. Login automático y redirigir al prode
+    // Login automático
     const { error: loginError } = await supabase.auth.signInWithPassword({
       email: form.email,
       password: form.password,
     })
 
     if (loginError) {
-      // Si el email no está confirmado aún en Supabase
       setError('Registrado. Podés ingresar desde el login.')
       router.push('/login')
       return
@@ -126,14 +145,26 @@ export default function RegistroPage() {
     router.push('/prode')
   }
 
+  const inputStyle = {
+    background: 'var(--surface-2)',
+    border: '1.5px solid var(--border)',
+    borderRadius: '8px',
+    color: 'var(--foreground)',
+    padding: '12px 16px',
+    width: '100%',
+    outline: 'none',
+    fontFamily: 'var(--font-body)',
+    fontSize: '15px',
+  }
+
   return (
     <main className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
       <header className="flex items-center gap-2 px-4 py-3 border-b"
         style={{ borderColor: 'var(--border)', background: 'var(--negro)' }}>
         <Link href="/"
-          className="flex items-center justify-center transition-all hover:opacity-80 active:scale-95 flex-shrink-0"
+          className="flex items-center justify-center transition-all hover:opacity-80 flex-shrink-0"
           style={{ width: 36, height: 36, background: 'var(--surface-2)', border: '1.5px solid var(--border)' }}
-          aria-label="Volver al inicio">
+          aria-label="Volver">
           <span className="font-brand text-white" style={{ fontSize: '20px', lineHeight: 1 }}>←</span>
         </Link>
         <PixelChimi size={2} />
@@ -148,62 +179,127 @@ export default function RegistroPage() {
         <div className="flex-1" style={{ background: 'var(--celeste)' }} />
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-5 py-8">
         <div className="w-full max-w-sm">
-          <div className="mb-6">
+          <div className="mb-7">
             <h1 className="font-brand text-white leading-none" style={{ fontSize: '52px', fontWeight: 900 }}>
               REGISTRATE
             </h1>
-            <p className="text-white/40 text-sm mt-1">Gratis · Cargá tus datos y empezá a predecir</p>
+            <p className="text-white/40 text-sm mt-1">Gratis · Cargá bien tus datos para participar del sorteo</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+
+            {/* Nombre */}
             <div>
-              <label className="block text-white/50 text-xs mb-1.5 font-pixel" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
                 NOMBRE COMPLETO
               </label>
               <input type="text" required placeholder="Juan Pérez"
                 value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="input-base" />
+                style={inputStyle} />
             </div>
 
+            {/* Teléfono con aviso */}
             <div>
-              <label className="block text-white/50 text-xs mb-1.5 font-pixel" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
                 TELEFONO
               </label>
               <input type="tel" required placeholder="+54 9 11 1234-5678"
                 value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                className="input-base" />
+                style={inputStyle} />
+              <p className="mt-1.5 text-xs flex items-center gap-1.5" style={{ color: 'var(--dorado)' }}>
+                <span>⚠️</span>
+                <span>Ponelo bien — te contactamos por acá si ganás</span>
+              </p>
             </div>
 
+            {/* Email con aviso */}
             <div>
-              <label className="block text-white/50 text-xs mb-1.5 font-pixel" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
                 EMAIL
               </label>
               <input type="email" required placeholder="juan@email.com"
                 value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                className="input-base" />
+                style={inputStyle} />
+              <p className="mt-1.5 text-xs flex items-center gap-1.5" style={{ color: 'var(--dorado)' }}>
+                <span>⚠️</span>
+                <span>Ponelo bien — te avisamos los resultados por acá</span>
+              </p>
             </div>
 
+            {/* Contraseña con ojo */}
             <div>
-              <label className="block text-white/50 text-xs mb-1.5 font-pixel" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
                 CONTRASENA
               </label>
-              <input type="password" required placeholder="Mínimo 6 caracteres"
-                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                className="input-base" minLength={6} />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required placeholder="Mínimo 6 caracteres"
+                  value={form.password}
+                  onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                  style={{ ...inputStyle, paddingRight: '44px' }}
+                  minLength={6}
+                />
+                <button type="button"
+                  onClick={() => setShowPassword(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                  style={{ fontSize: '18px', lineHeight: 1 }}>
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
             </div>
 
+            {/* Repetir contraseña */}
             <div>
-              <label className="block text-white/50 text-xs mb-1.5 font-pixel" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+                REPETIR CONTRASENA
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword2 ? 'text' : 'password'}
+                  required placeholder="Repetí tu contraseña"
+                  value={form.password2}
+                  onChange={e => setForm(f => ({ ...f, password2: e.target.value }))}
+                  style={{
+                    ...inputStyle,
+                    paddingRight: '44px',
+                    borderColor: form.password2 && form.password !== form.password2
+                      ? '#CE1126'
+                      : form.password2 && form.password === form.password2
+                      ? '#009B3A'
+                      : 'var(--border)',
+                  }}
+                  minLength={6}
+                />
+                <button type="button"
+                  onClick={() => setShowPassword2(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
+                  style={{ fontSize: '18px', lineHeight: 1 }}>
+                  {showPassword2 ? '🙈' : '👁'}
+                </button>
+              </div>
+              {form.password2 && form.password !== form.password2 && (
+                <p className="mt-1.5 text-xs" style={{ color: '#CE1126' }}>Las contraseñas no coinciden</p>
+              )}
+              {form.password2 && form.password === form.password2 && (
+                <p className="mt-1.5 text-xs" style={{ color: '#009B3A' }}>✓ Las contraseñas coinciden</p>
+              )}
+            </div>
+
+            {/* Apodo opcional */}
+            <div>
+              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
                 APODO <span className="text-white/25">(OPCIONAL)</span>
               </label>
               <input type="text" placeholder="Ej: El Flaco" aria-label="Apodo opcional"
                 value={form.apodo} onChange={e => setForm(f => ({ ...f, apodo: e.target.value }))}
-                className="input-base" maxLength={20} />
+                style={inputStyle} maxLength={20} />
               {form.apodo.trim() && (
-                <p className="text-white/30 text-xs mt-1">
-                  En el ranking: <span className="text-white/60 font-semibold">
+                <p className="text-white/30 text-xs mt-1.5">
+                  En el ranking:{' '}
+                  <span className="text-white/60 font-semibold">
                     {form.name || 'Tu nombre'}{' '}
                     <span style={{ color: 'var(--celeste)' }}>&quot;{form.apodo.trim()}&quot;</span>
                   </span>
@@ -211,45 +307,96 @@ export default function RegistroPage() {
               )}
             </div>
 
-            {/* Instagram */}
-            <label className="flex items-start gap-3 p-4 rounded-sm cursor-pointer transition-all"
+            {/* Instagram — flujo en 2 pasos */}
+            <div className="flex flex-col gap-3 p-4 rounded-sm"
               style={{
-                background: form.instagram ? 'rgba(116,172,223,0.12)' : 'var(--surface)',
+                background: form.instagram ? 'rgba(116,172,223,0.1)' : 'var(--surface)',
                 border: form.instagram ? '1.5px solid var(--celeste)' : '1.5px solid var(--border)',
               }}>
-              <div className="flex-shrink-0 mt-0.5">
-                <input type="checkbox" checked={form.instagram}
-                  onChange={e => setForm(f => ({ ...f, instagram: e.target.checked }))}
-                  className="sr-only" />
-                <div className="w-5 h-5 rounded-sm flex items-center justify-center transition-all"
-                  style={{
-                    background: form.instagram ? 'var(--celeste)' : 'transparent',
-                    border: form.instagram ? 'none' : '2px solid rgba(255,255,255,0.2)',
-                  }}>
-                  {form.instagram && <span className="text-white text-xs font-bold">✓</span>}
-                </div>
-              </div>
               <div>
-                <p className="text-white text-sm font-semibold">
-                  Sigo a{' '}
-                  <a href="https://www.instagram.com/saborargentoar/" target="_blank" rel="noopener noreferrer"
-                    className="font-bold" style={{ color: 'var(--celeste)' }}
-                    onClick={e => e.stopPropagation()}>
-                    @saborargentoar
-                  </a>{' '}en Instagram
+                <p className="font-brand text-white" style={{ fontSize: '16px', fontWeight: 900 }}>
+                  SEGUIR EN INSTAGRAM
                 </p>
-                <p className="text-white/40 text-xs mt-0.5">Requisito para participar del sorteo</p>
+                <p className="text-white/50 text-xs mt-0.5">
+                  Requisito obligatorio para participar del sorteo
+                </p>
               </div>
-            </label>
 
-            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+              {/* Paso 1: abrir Instagram */}
+              {!form.instagram && (
+                <button
+                  type="button"
+                  onClick={openInstagram}
+                  className="flex items-center justify-center gap-2 py-3 font-brand transition-all active:scale-95"
+                  style={{
+                    background: igOpened ? 'rgba(116,172,223,0.15)' : 'var(--celeste)',
+                    color: 'white',
+                    fontSize: '18px',
+                    fontWeight: 900,
+                    letterSpacing: '1px',
+                    border: igOpened ? '1.5px solid var(--celeste)' : 'none',
+                  }}
+                >
+                  {igOpened ? '↗ VER @SABORARGENTOAR' : '📸 ABRIR INSTAGRAM →'}
+                </button>
+              )}
 
-            <button type="submit" disabled={loading} className="btn-primary w-full disabled:opacity-50">
+              {/* Paso 2: confirmar que lo siguió (solo aparece después de abrir IG) */}
+              {igOpened && !form.instagram && (
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, instagram: true }))}
+                  className="flex items-center justify-center gap-2 py-3 font-brand transition-all active:scale-95"
+                  style={{
+                    background: 'rgba(0,155,58,0.2)',
+                    color: '#009B3A',
+                    fontSize: '18px',
+                    fontWeight: 900,
+                    border: '1.5px solid #009B3A',
+                    letterSpacing: '1px',
+                    animation: 'pulse-soft 2s ease-in-out infinite',
+                  }}
+                >
+                  ✓ YA LOS SEGUÍ
+                </button>
+              )}
+
+              {/* Confirmado */}
+              {form.instagram && (
+                <div className="flex items-center gap-2 py-2">
+                  <span className="text-xl">✅</span>
+                  <span className="text-white/80 text-sm font-semibold">Seguís a @saborargentoar</span>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, instagram: false }))}
+                    className="ml-auto text-white/30 text-xs hover:text-white/60"
+                  >
+                    deshacer
+                  </button>
+                </div>
+              )}
+
+              <p className="text-white/30 text-xs">
+                La participación en el sorteo está sujeta a verificación manual de seguidores.
+              </p>
+            </div>
+
+            {error && (
+              <p className="text-red-400 text-sm text-center py-2 px-3"
+                style={{ background: 'rgba(206,17,38,0.1)', border: '1px solid rgba(206,17,38,0.3)' }}>
+                {error}
+              </p>
+            )}
+
+            <button type="submit" disabled={loading || !form.instagram}
+              className="btn-primary w-full disabled:opacity-40 mt-1"
+              style={{ fontSize: '20px' }}>
               {loading ? 'REGISTRANDO...' : 'REGISTRARME →'}
             </button>
+
           </form>
 
-          <p className="text-center text-white/30 text-xs mt-4">
+          <p className="text-center text-white/30 text-xs mt-5">
             Ya tenés cuenta?{' '}
             <Link href="/login" className="underline hover:text-white/60 transition-colors">
               Ingresá con tu email
