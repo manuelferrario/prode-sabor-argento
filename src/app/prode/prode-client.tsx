@@ -1,12 +1,25 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import type { Match, Participant, Prediction, BonusPrediction } from '@/lib/types'
 import { isoToFlag, teamDisplayName } from '@/lib/flags'
 import { PixelChimi } from '@/components/PixelChimi'
 import { WORLD_CUP_TEAMS, ARGENTINA_SQUAD } from '@/lib/teams'
+
+/** Dispara confetti desde el centro de la pantalla */
+function fireConfetti() {
+  import('canvas-confetti').then(({ default: confetti }) => {
+    confetti({
+      particleCount: 60,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#74ACDF', '#F6B40E', '#ffffff', '#009B3A'],
+      scalar: 0.9,
+    })
+  }).catch(() => {})
+}
 
 // Sin tildes para la pixel font
 const ROUND_LABELS: Record<string, string> = {
@@ -66,6 +79,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
 
     setSaving(s => ({ ...s, [matchId]: false }))
     setSaved(s => ({ ...s, [matchId]: true }))
+    fireConfetti()
     setTimeout(() => setSaved(s => ({ ...s, [matchId]: false })), 2000)
   }
 
@@ -333,6 +347,9 @@ function MatchCard({
   const homeFlag = isoToFlag(match.team_home_flag)
   const awayFlag = isoToFlag(match.team_away_flag)
 
+  // Tab automático: ref al input del score visitante
+  const awayInputRef = useRef<HTMLInputElement>(null)
+
   return (
     <div
       id={`match-${match.id}`}
@@ -378,11 +395,24 @@ function MatchCard({
             </div>
           ) : (
             <>
-              <ScoreInput value={pred?.home ?? ''} disabled={locked}
-                onChange={v => onChange(v, pred?.away ?? '')} />
+              <ScoreInput
+                value={pred?.home ?? ''}
+                disabled={locked}
+                onChange={v => {
+                  onChange(v, pred?.away ?? '')
+                  // Auto-avanzar al score visitante cuando se ingresa 1 dígito
+                  if (v !== '' && (pred?.away ?? '') === '') {
+                    setTimeout(() => awayInputRef.current?.focus(), 50)
+                  }
+                }}
+              />
               <span className="text-white/30 font-pixel" style={{ fontSize: '10px' }}>-</span>
-              <ScoreInput value={pred?.away ?? ''} disabled={locked}
-                onChange={v => onChange(pred?.home ?? '', v)} />
+              <ScoreInput
+                value={pred?.away ?? ''}
+                disabled={locked}
+                inputRef={awayInputRef}
+                onChange={v => onChange(pred?.home ?? '', v)}
+              />
             </>
           )}
         </div>
@@ -452,10 +482,11 @@ function MatchCard({
   )
 }
 
-function ScoreInput({ value, disabled, onChange }: {
+function ScoreInput({ value, disabled, onChange, inputRef }: {
   value: string
   disabled: boolean
   onChange: (v: string) => void
+  inputRef?: React.RefObject<HTMLInputElement | null>
 }) {
   const [popping, setPopping] = useState(false)
 
@@ -469,9 +500,11 @@ function ScoreInput({ value, disabled, onChange }: {
 
   return (
     <input
+      ref={inputRef}
       type="number" min="0" max="20"
-      inputMode="numeric"       // teclado numérico en mobile
+      inputMode="numeric"
       pattern="[0-9]*"
+      enterKeyHint="next"
       value={value}
       disabled={disabled}
       onChange={handleChange}
