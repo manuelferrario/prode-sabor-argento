@@ -224,13 +224,20 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  height: 51%;           /* 51% para que no quede gap de 1px */
-  background: var(--background);
+  height: 55%;
   z-index: 1;
   transition: transform 0.52s cubic-bezier(0.76, 0, 0.24, 1);
 }
-.splash-curtain-top    { top: 0; }
-.splash-curtain-bottom { bottom: 0; }
+/* Borde inferior de la cortina top se desvanece */
+.splash-curtain-top {
+  top: 0;
+  background: linear-gradient(to bottom, #0a0a0a 70%, transparent 100%);
+}
+/* Borde superior de la cortina bottom se desvanece */
+.splash-curtain-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, #0a0a0a 70%, transparent 100%);
+}
 .splash-curtain-top.open    { transform: translateY(-102%); }
 .splash-curtain-bottom.open { transform: translateY(102%); }
 
