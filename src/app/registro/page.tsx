@@ -53,7 +53,8 @@ export default function RegistroPage() {
   const [igOpened, setIgOpened] = useState(false)
 
   const [form, setForm] = useState({
-    name: '',
+    nombre: '',
+    apellido: '',
     phone: '',
     email: '',
     password: '',
@@ -136,11 +137,13 @@ export default function RegistroPage() {
       return
     }
 
+    const fullName = `${form.nombre.trim()} ${form.apellido.trim()}`
+
     // Crear usuario en Supabase Auth
     const { error: signUpError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
-      options: { data: { name: form.name } },
+      options: { data: { name: fullName } },
     })
 
     if (signUpError) {
@@ -157,7 +160,7 @@ export default function RegistroPage() {
     const { error: insertError } = await supabase
       .from('participants')
       .insert({
-        name: form.name,
+        name: fullName,
         phone: phoneClean,
         email: form.email,
         apodo: form.apodo.trim() || null,
@@ -232,14 +235,24 @@ export default function RegistroPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
 
-            {/* Nombre */}
-            <div>
-              <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
-                NOMBRE COMPLETO
-              </label>
-              <input type="text" required placeholder="Juan Pérez"
-                value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                style={inputStyle} />
+            {/* Nombre + Apellido */}
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+                  NOMBRE
+                </label>
+                <input type="text" required placeholder="Juan"
+                  value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+                  style={inputStyle} />
+              </div>
+              <div className="flex-1">
+                <label className="block font-pixel text-white/50 mb-1.5" style={{ fontSize: '9px', letterSpacing: '1px' }}>
+                  APELLIDO
+                </label>
+                <input type="text" required placeholder="Pérez"
+                  value={form.apellido} onChange={e => setForm(f => ({ ...f, apellido: e.target.value }))}
+                  style={inputStyle} />
+              </div>
             </div>
 
             {/* Teléfono con aviso */}
@@ -344,7 +357,7 @@ export default function RegistroPage() {
                 <p className="text-white/30 text-xs mt-1.5">
                   En el ranking:{' '}
                   <span className="text-white/60 font-semibold">
-                    {form.name || 'Tu nombre'}{' '}
+                    {form.nombre || 'Tu nombre'}{' '}
                     <span style={{ color: 'var(--celeste)' }}>&quot;{form.apodo.trim()}&quot;</span>
                   </span>
                 </p>

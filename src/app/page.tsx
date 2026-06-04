@@ -121,6 +121,15 @@ export default function HomePage() {
   const [sprites, setSprites] = useState<FlyingConfig[]>(SSR_SPRITES)
   useEffect(() => { setSprites(getRandomSprites()) }, [])
 
+  // Si ya hay sesión activa, ir directo al prode
+  useEffect(() => {
+    import('@/lib/supabase/client').then(({ createClient }) => {
+      createClient().auth.getSession().then(({ data: { session } }) => {
+        if (session) window.location.replace('/prode')
+      })
+    })
+  }, [])
+
   return (
     <main className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
 

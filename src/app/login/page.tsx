@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -14,6 +14,27 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [showReset, setShowReset] = useState(false)
   const [resetSent, setResetSent] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
+
+  // Si ya hay sesión activa, ir directo al prode
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.replace('/prode')
+      } else {
+        setCheckingSession(false)
+      }
+    })
+  }, [router])
+
+  if (checkingSession) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
+        <p className="font-pixel text-white/30" style={{ fontSize: '9px', letterSpacing: '2px' }}>CARGANDO...</p>
+      </main>
+    )
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
