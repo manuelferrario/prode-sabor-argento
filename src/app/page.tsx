@@ -4,6 +4,7 @@ import { PixelChimi } from '@/components/PixelChimi'
 import { PixelSprite, getRandomSprites, SSR_SPRITES, type FlyingConfig } from '@/components/PixelSprites'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { SplashScreen } from '@/components/SplashScreen'
 
 const PRIZES = [
   {
@@ -133,6 +134,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+      <SplashScreen />
 
       {/* Header */}
       <header

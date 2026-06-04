@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { PixelChimi } from '@/components/PixelChimi'
-import { ChimiLoader } from '@/components/ChimiLoader'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -29,9 +28,7 @@ export default function LoginPage() {
     })
   }, [router])
 
-  if (checkingSession) {
-    return <ChimiLoader />
-  }
+  if (checkingSession) return null
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
