@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { PixelChimi } from '@/components/PixelChimi'
 import { PixelSprite, getRandomSprites, SSR_SPRITES, type FlyingConfig } from '@/components/PixelSprites'
 import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 const PRIZES = [
   {
@@ -119,14 +120,14 @@ function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
 export default function HomePage() {
   // SSR: sprites fijos variados. Client: reemplaza con random en cada visita.
   const [sprites, setSprites] = useState<FlyingConfig[]>(SSR_SPRITES)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
   useEffect(() => { setSprites(getRandomSprites()) }, [])
 
-  // Si ya hay sesión activa, ir directo al prode
+  // Detecta sesión activa para cambiar el CTA (sin redirigir, para no romper la navegación)
   useEffect(() => {
-    import('@/lib/supabase/client').then(({ createClient }) => {
-      createClient().auth.getSession().then(({ data: { session } }) => {
-        if (session) window.location.replace('/prode')
-      })
+    createClient().auth.getSession().then(({ data: { session } }) => {
+      if (session) setIsLoggedIn(true)
     })
   }, [])
 
@@ -217,22 +218,42 @@ export default function HomePage() {
           PRODE OFICIAL · MUNDIAL 2026
         </div>
 
-        {/* CTA con glow animado */}
-        <Link href="/registro"
-          className="relative font-brand text-white anim-hero-cta btn-cta-glow active:scale-95 hover:opacity-95 transition-all"
-          style={{
-            fontSize: '26px', fontWeight: 900, letterSpacing: '3px',
-            background: 'var(--negro)', border: '3px solid var(--dorado)',
-            padding: '12px 40px', display: 'inline-block',
-          }}>
-          PARTICIPAR GRATIS
-        </Link>
+        {/* CTA con glow animado — cambia si ya hay sesión */}
+        {isLoggedIn ? (
+          <Link href="/prode"
+            className="relative font-brand text-white anim-hero-cta btn-cta-glow active:scale-95 hover:opacity-95 transition-all"
+            style={{
+              fontSize: '26px', fontWeight: 900, letterSpacing: '3px',
+              background: 'var(--negro)', border: '3px solid var(--celeste)',
+              padding: '12px 40px', display: 'inline-block',
+            }}>
+            IR A MI PRODE →
+          </Link>
+        ) : (
+          <Link href="/registro"
+            className="relative font-brand text-white anim-hero-cta btn-cta-glow active:scale-95 hover:opacity-95 transition-all"
+            style={{
+              fontSize: '26px', fontWeight: 900, letterSpacing: '3px',
+              background: 'var(--negro)', border: '3px solid var(--dorado)',
+              padding: '12px 40px', display: 'inline-block',
+            }}>
+            PARTICIPAR GRATIS
+          </Link>
+        )}
 
         <p className="mt-4 text-white/70 text-sm anim-hero-cta">
-          Ya jugás?{' '}
-          <Link href="/login" className="underline font-semibold text-white hover:opacity-80">
-            Entrá a tu prode
-          </Link>
+          {isLoggedIn ? (
+            <Link href="/ranking" className="underline font-semibold text-white hover:opacity-80">
+              Ver el ranking
+            </Link>
+          ) : (
+            <>
+              Ya jugás?{' '}
+              <Link href="/login" className="underline font-semibold text-white hover:opacity-80">
+                Entrá a tu prode
+              </Link>
+            </>
+          )}
         </p>
 
         </div>{/* fin wrapper z-index:2 */}

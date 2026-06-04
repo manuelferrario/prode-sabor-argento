@@ -66,6 +66,14 @@ export default function RegistroPage() {
 
   useEffect(() => { setDeviceId(getDeviceId()) }, [])
 
+  // Si ya hay sesión activa, ir directo al prode
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) router.replace('/prode')
+    })
+  }, [router])
+
   function openInstagram() {
     window.open('https://www.instagram.com/saborargentoar/', '_blank')
     setIgOpened(true)

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PageTransition } from "@/components/PageTransition";
 
 export const metadata: Metadata = {
   title: "Prode Sabor Argento — Mundial 2026",
@@ -17,7 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="h-full" suppressHydrationWarning>
-      <body className="min-h-full flex flex-col antialiased" suppressHydrationWarning>{children}</body>
+      <body className="min-h-full flex flex-col antialiased" suppressHydrationWarning>
+        <PageTransition>{children}</PageTransition>
+      </body>
     </html>
   );
 }
