@@ -294,7 +294,7 @@ export default function HomePage() {
         }}
       >
         <p className="text-white/50 text-xs mb-2 font-pixel" style={{ fontSize: '8px', letterSpacing: '1px' }}>
-          PARA PARTICIPAR DEL SORTEO
+          PARA PARTICIPAR DEL PRODE
         </p>
         <p className="text-white/70 text-sm mb-2">seguí en Instagram a</p>
         <a

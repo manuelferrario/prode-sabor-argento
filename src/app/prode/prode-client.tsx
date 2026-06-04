@@ -69,6 +69,19 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
     setTimeout(() => setSaved(s => ({ ...s, [matchId]: false })), 2000)
   }
 
+  // Guardar TODAS las predicciones pendientes de una vez
+  async function saveAll() {
+    const pending = Object.entries(predMap).filter(
+      ([matchId, pred]) => pred.home !== '' && pred.away !== '' && !saved[matchId]
+    )
+    if (pending.length === 0) return
+    setSaving(s => ({ ...s, saveAll: true }))
+    await Promise.all(pending.map(([matchId]) => savePrediction(matchId)))
+    setSaving(s => ({ ...s, saveAll: false }))
+    setSaved(s => ({ ...s, saveAll: true }))
+    setTimeout(() => setSaved(s => ({ ...s, saveAll: false })), 3000)
+  }
+
   async function saveBonus() {
     setSaving(s => ({ ...s, bonus: true }))
     await supabase
@@ -95,8 +108,8 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   const availableCount = matches.filter(m => !isLocked(m)).length
 
   return (
-    <main className="min-h-screen" style={{ background: 'var(--background)' }}>
-      {/* Header — misma vibe landing */}
+    <main className="min-h-screen pb-20" style={{ background: 'var(--background)' }}>
+      {/* Header compacto */}
       <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 border-b"
         style={{ background: 'var(--negro)', borderColor: 'var(--border)' }}>
         <Link href="/" className="flex items-center gap-2">
@@ -106,9 +119,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
           </span>
         </Link>
         <div className="flex items-center gap-2">
-          <Link href="/ranking" className="font-pixel text-white/50 hover:text-white transition-colors" style={{ fontSize: '8px' }}>
-            RANKING
-          </Link>
+          {/* Chimichurros counter */}
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 font-pixel"
             style={{ background: 'rgba(246,180,14,0.12)', border: '1px solid rgba(246,180,14,0.3)',
               color: 'var(--dorado)', fontSize: '10px' }}>
@@ -118,6 +129,20 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
           <LogoutButton />
         </div>
       </header>
+
+      {/* Tab bar fijo abajo — PRODE | RANKING */}
+      <nav className="fixed bottom-0 left-0 right-0 z-20 flex border-t"
+        style={{ background: 'var(--negro)', borderColor: 'var(--border)' }}>
+        <div className="flex-1 flex items-center justify-center py-3 gap-2"
+          style={{ borderRight: '1px solid var(--border)' }}>
+          <span className="text-lg">⚽</span>
+          <span className="font-brand text-white" style={{ fontSize: '16px', fontWeight: 900 }}>MI PRODE</span>
+        </div>
+        <Link href="/ranking" className="flex-1 flex items-center justify-center py-3 gap-2 hover:opacity-80 transition-opacity">
+          <span className="text-lg">🏆</span>
+          <span className="font-brand text-white/60" style={{ fontSize: '16px', fontWeight: 900 }}>RANKING</span>
+        </Link>
+      </nav>
 
       {/* Progress bar */}
       <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -241,10 +266,28 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
           </button>
         </div>
 
+        {/* GUARDAR TODO — botón flotante cuando hay predicciones sin guardar */}
+        {Object.values(predMap).some(p => p.home !== '' && p.away !== '') && (
+          <button
+            onClick={saveAll}
+            disabled={!!saving.saveAll}
+            className="w-full mb-5 py-3 font-brand transition-all active:scale-95 disabled:opacity-50"
+            style={{
+              background: saved.saveAll ? '#009B3A' : 'var(--celeste)',
+              color: 'white', fontSize: '20px', fontWeight: 900, letterSpacing: '2px',
+              boxShadow: '0 4px 0 var(--celeste-dark)',
+            }}>
+            {saved.saveAll ? '✓ TODO GUARDADO' : saving.saveAll ? 'GUARDANDO...' : '💾 GUARDAR TODO'}
+          </button>
+        )}
+
         {/* Partidos por ronda */}
         {roundOrder.map(round => {
           const roundMatches = matchesByRound[round]
           if (!roundMatches?.length) return null
+
+          // Lista ordenada de todos los IDs para navegación con flecha
+          const allMatchIds = roundMatches.map(m => m.id)
 
           return (
             <div key={round} className="mb-6">
@@ -253,10 +296,11 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
               </h2>
 
               <div className="flex flex-col gap-4">
-                {roundMatches.map(match => {
+                {roundMatches.map((match, idx) => {
                   const locked = isLocked(match)
                   const pred = predMap[match.id]
                   const hasPred = pred?.home !== '' && pred?.away !== ''
+                  const nextMatchId = allMatchIds[idx + 1]
 
                   return (
                     <MatchCard
@@ -271,6 +315,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                         setPredMap(m => ({ ...m, [match.id]: { home, away } }))
                       }
                       onSave={() => savePrediction(match.id)}
+                      nextMatchId={nextMatchId}
                     />
                   )
                 })}
@@ -284,7 +329,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
 }
 
 function MatchCard({
-  match, locked, pred, hasPred, saving, saved, onChange, onSave
+  match, locked, pred, hasPred, saving, saved, onChange, onSave, nextMatchId
 }: {
   match: Match
   locked: boolean
@@ -294,6 +339,7 @@ function MatchCard({
   saved: boolean
   onChange: (home: string, away: string) => void
   onSave: () => void
+  nextMatchId?: string
 }) {
   const date = new Date(match.match_date)
   const dateStr = date.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' })
@@ -308,6 +354,7 @@ function MatchCard({
 
   return (
     <div
+      id={`match-${match.id}`}
       className="p-3 transition-all"
       style={{
         background: hasPred ? 'rgba(116,172,223,0.08)' : '#1c1c2e',
@@ -381,28 +428,44 @@ function MatchCard({
         </div>
       )}
 
-      {/* Botón guardar */}
+      {/* Botones — guardar + siguiente */}
       {!locked && !isFinished && (
-        <button
-          onClick={onSave}
-          disabled={saving || !pred?.home || !pred?.away}
-          className={[
-            'w-full mt-2 py-2 font-brand transition-all active:scale-95 disabled:opacity-40',
-            saved ? 'anim-check' : '',
-          ].join(' ')}
-          style={{
-            background: saved ? '#009B3A'
-              : saving ? 'rgba(116,172,223,0.25)'
-              : hasPred ? 'rgba(116,172,223,0.15)'
-              : 'rgba(255,255,255,0.04)',
-            fontSize: '16px', fontWeight: 900, letterSpacing: '1px',
-            color: saved ? 'white' : hasPred ? 'var(--celeste)' : 'rgba(255,255,255,0.2)',
-            border: `1.5px solid ${saved ? '#009B3A' : hasPred ? 'rgba(116,172,223,0.4)' : 'transparent'}`,
-            boxShadow: saved ? '0 0 12px rgba(0,155,58,0.4)' : hasPred ? '0 0 8px rgba(116,172,223,0.15)' : 'none',
-          }}
-        >
-          {saved ? '✓ GUARDADO' : saving ? '⏳ GUARDANDO...' : hasPred ? '↑ ACTUALIZAR' : 'GUARDAR'}
-        </button>
+        <>
+          <button
+            onClick={onSave}
+            disabled={saving || !pred?.home || !pred?.away}
+            className="w-full mt-2 py-2 font-brand transition-all active:scale-95 disabled:opacity-40"
+            style={{
+              background: saved ? '#009B3A' : hasPred ? 'rgba(116,172,223,0.15)' : 'rgba(255,255,255,0.04)',
+              fontSize: '16px', fontWeight: 900, letterSpacing: '1px',
+              color: saved ? 'white' : hasPred ? 'var(--celeste)' : 'rgba(255,255,255,0.2)',
+              border: `1.5px solid ${saved ? '#009B3A' : hasPred ? 'rgba(116,172,223,0.4)' : 'transparent'}`,
+            }}
+          >
+            {saved ? '✓ GUARDADO' : saving ? '⏳ GUARDANDO...' : 'GUARDAR'}
+          </button>
+
+          {hasPred && nextMatchId && (
+            <button
+              type="button"
+              onClick={() => {
+                onSave()
+                setTimeout(() => {
+                  const el = document.getElementById(`match-${nextMatchId}`)
+                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }, 200)
+              }}
+              className="w-full mt-1 py-2 font-brand transition-all active:scale-95"
+              style={{
+                background: 'rgba(116,172,223,0.06)',
+                color: 'rgba(116,172,223,0.7)', fontSize: '15px', fontWeight: 900,
+                border: '1px solid rgba(116,172,223,0.15)',
+              }}
+            >
+              SIGUIENTE →
+            </button>
+          )}
+        </>
       )}
     </div>
   )
