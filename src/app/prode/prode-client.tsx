@@ -144,20 +144,6 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
         </Link>
       </nav>
 
-      {/* Progress bar */}
-      <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border)' }}>
-        <div className="flex justify-between items-center mb-1">
-          <span className="font-pixel text-white/30" style={{ fontSize: '7px', letterSpacing: '1px' }}>TU PROGRESO</span>
-          <span className="font-pixel text-white/50" style={{ fontSize: '7px' }}>
-            {predCount}/{matches.length} PREDICHOS
-          </span>
-        </div>
-        <div className="h-1.5 overflow-hidden" style={{ background: 'var(--surface-2)' }}>
-          <div className="h-full transition-all duration-500"
-            style={{ width: `${matches.length > 0 ? (predCount / matches.length) * 100 : 0}%`,
-              background: 'linear-gradient(90deg, var(--celeste-dark), var(--celeste))' }} />
-        </div>
-      </div>
 
       <div className="px-5 py-6 max-w-lg mx-auto">
         {/* Bienvenida */}
@@ -165,11 +151,6 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
           <h1 className="font-brand text-white" style={{ fontSize: '36px', fontWeight: 900, lineHeight: 1 }}>
             HOLA, {participant.name.split(' ')[0].toUpperCase()}!
           </h1>
-          <p className="text-white/40 text-sm mt-1">
-            {availableCount > 0
-              ? `${availableCount} partidos disponibles para predecir.`
-              : 'Todos los partidos cargados.'}
-          </p>
         </div>
 
         {/* Predicciones bonus */}
