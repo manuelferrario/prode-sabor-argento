@@ -206,6 +206,87 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* =============================================
+   CHIMI LOADER
+   ============================================= */
+
+/* El overlay fade: aparece rápido, aguanta, desaparece */
+@keyframes chimiLoaderFade {
+  0%   { opacity: 0; }
+  12%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+/* Chimi flotando arriba/abajo */
+@keyframes chimiHover {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-16px); }
+}
+/* Sombra que crece cuando baja, achica cuando sube */
+@keyframes chimiShadow {
+  0%, 100% { transform: scaleX(1);    opacity: 0.5; }
+  50%       { transform: scaleX(0.5); opacity: 0.15; }
+}
+/* Puntos de "salsa" que caen */
+@keyframes salsaDrop {
+  0%   { transform: translateY(0) scale(1); opacity: 0.8; }
+  100% { transform: translateY(28px) scale(0.5); opacity: 0; }
+}
+/* Glow pulsante celeste */
+@keyframes chimiGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px rgba(116,172,223,0.3)); }
+  50%       { filter: drop-shadow(0 0 20px rgba(116,172,223,0.7)); }
+}
+
+.chimi-loader-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--background);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  animation: chimiLoaderFade 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+.chimi-loader-art {
+  animation: chimiHover 0.75s ease-in-out infinite,
+             chimiGlow   1.5s ease-in-out infinite;
+}
+
+.chimi-loader-shadow {
+  width: 64px;
+  height: 10px;
+  margin-top: 4px;
+  background: radial-gradient(ellipse at center, rgba(116,172,223,0.5) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: chimiShadow 0.75s ease-in-out infinite;
+}
+
+/* Partículas de salsa */
+.salsa-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  animation: salsaDrop 0.6s ease-in infinite;
+}
+.salsa-particle:nth-child(1) { background: #c24e0a; left: 38%; animation-delay: 0.0s; }
+.salsa-particle:nth-child(2) { background: #3d7a1e; left: 52%; animation-delay: 0.2s; }
+.salsa-particle:nth-child(3) { background: #c24e0a; left: 44%; animation-delay: 0.4s; }
+.salsa-particle:nth-child(4) { background: #2a5218; left: 58%; animation-delay: 0.1s; }
+
+.chimi-loader-text {
+  margin-top: 28px;
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: rgba(255,255,255,0.3);
+  animation: pulse-soft 1.2s ease-in-out infinite;
+}
+
 /* Clases de animación */
 .page-enter        { animation: pageEnter 0.35s cubic-bezier(0.22,1,0.36,1) both; }
 .anim-fadeInUp     { animation: fadeInUp 0.5s ease both; }
