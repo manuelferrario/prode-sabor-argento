@@ -40,11 +40,12 @@ export function PixelChimi({ size = 3, className = '' }: { size?: number; classN
     // Etiqueta negra — spacer top
     [0, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 0], // 13
     // CHIMI — cols 3-16 (14 píxeles), C(2)+gap+H(3)+gap+I(1)+gap+M(3)+gap+I(1)
-    // row0: C=##  H=#.#  I=#  M=#.#  I=#
-    [0, 1, 9, 3, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 1, 0], // 14
-    // row1: C=#.  H=###  I=#  M=###  I=#
-    [0, 1, 9, 3, 9, 9, 3, 3, 3, 9, 3, 9, 3, 3, 3, 9, 3, 9, 1, 0], // 15
-    // row2: C=##  H=#.#  I=#  M=#.#  I=#
+    // M tiene barra ARRIBA (###) para distinguirse de H (que tiene barra en el MEDIO)
+    // row0: C=##  H=#.#  I=#  M=###  I=#   ← M top: barra completa
+    [0, 1, 9, 3, 3, 9, 3, 9, 3, 9, 3, 9, 3, 3, 3, 9, 3, 9, 1, 0], // 14
+    // row1: C=#.  H=###  I=#  M=#.#  I=#   ← M mid: hueco central
+    [0, 1, 9, 3, 9, 9, 3, 3, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 1, 0], // 15
+    // row2: C=##  H=#.#  I=#  M=#.#  I=#   ← M bot: hueco central
     [0, 1, 9, 3, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 3, 9, 1, 0], // 16
     // spacer
     [0, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 1, 0], // 17
