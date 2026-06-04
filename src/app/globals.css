@@ -237,17 +237,17 @@ body {
 /* Chimi centrado */
 .splash-chimi-wrap {
   position: absolute;
-  top: 50%;
+  top: 42%;
   left: 50%;
   z-index: 2;
   transform: translate(-50%, -50%) scale(1) rotate(0deg);
   opacity: 1;
-  transition: transform 0.38s cubic-bezier(0.55, 0, 1, 0.45),
-              opacity   0.32s ease;
+  transition: transform 0.55s cubic-bezier(0.4, 0, 0.8, 0.6),
+              opacity   0.45s ease;
 }
-/* Sale volando a la derecha */
+/* Sale volando a la derecha — más lento y visible */
 .splash-chimi-wrap.fly {
-  transform: translate(60vw, -60%) scale(0.25) rotate(25deg);
+  transform: translate(30vw, -50%) scale(0.5) rotate(15deg);
   opacity: 0;
 }
 

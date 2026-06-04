@@ -15,9 +15,9 @@ export function SplashScreen() {
     sessionStorage.setItem(key, '1')
 
     setPhase('enter')
-    const t1 = setTimeout(() => setPhase('fly'),     650)
-    const t2 = setTimeout(() => setPhase('curtain'), 880)
-    const t3 = setTimeout(() => setPhase('done'),   1500)
+    const t1 = setTimeout(() => setPhase('fly'),     850)  // más tiempo centrado
+    const t2 = setTimeout(() => setPhase('curtain'), 1100) // cortinas después del vuelo
+    const t3 = setTimeout(() => setPhase('done'),   1750)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 
