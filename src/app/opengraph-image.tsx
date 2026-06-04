@@ -30,10 +30,14 @@ export default function OgImage() {
         <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)' }} />
       </div>
 
-      {/* Estrellas */}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
-        {['★', '★', '★'].map((s, i) => (
-          <span key={i} style={{ fontSize: 40, color: '#F6B40E', filter: 'drop-shadow(0 2px 8px rgba(246,180,14,0.8))' }}>{s}</span>
+      {/* Estrellas — usando circulos dorados en lugar de ★ para evitar error de font */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{
+            width: 32, height: 32, borderRadius: '50%',
+            background: '#F6B40E',
+            boxShadow: '0 0 12px rgba(246,180,14,0.8)',
+          }} />
         ))}
       </div>
 
