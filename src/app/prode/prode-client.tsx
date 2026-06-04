@@ -8,17 +8,21 @@ import { isoToFlag, teamDisplayName } from '@/lib/flags'
 import { PixelChimi } from '@/components/PixelChimi'
 import { WORLD_CUP_TEAMS, ARGENTINA_SQUAD } from '@/lib/teams'
 
-/** Dispara confetti desde el centro de la pantalla */
-function fireConfetti() {
-  import('canvas-confetti').then(({ default: confetti }) => {
+/** Dispara confetti con los colores de Argentina */
+async function fireConfetti() {
+  try {
+    const confetti = (await import('canvas-confetti')).default
     confetti({
-      particleCount: 60,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#74ACDF', '#F6B40E', '#ffffff', '#009B3A'],
-      scalar: 0.9,
+      particleCount: 80,
+      spread: 80,
+      origin: { y: 0.55 },
+      colors: ['#74ACDF', '#F6B40E', '#ffffff', '#009B3A', '#74ACDF'],
+      scalar: 1.1,
+      zIndex: 9999,
     })
-  }).catch(() => {})
+  } catch {
+    // canvas-confetti no disponible, continúa sin confetti
+  }
 }
 
 // Sin tildes para la pixel font
