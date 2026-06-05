@@ -125,9 +125,9 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   const roundOrder = ['group', 'round_of_32', 'round_of_16', 'quarterfinal', 'semifinal', 'final']
   const knockoutRounds = ['round_of_32', 'round_of_16', 'quarterfinal', 'semifinal', 'final']
 
-  // Una ronda eliminatoria está "bloqueada" si ningún equipo tiene bandera asignada todavía
+  // Una ronda eliminatoria está "bloqueada" si los equipos todavía son TBD
   function isRoundBracketLocked(roundMatches: Match[]) {
-    return roundMatches.every(m => !m.team_home_flag || m.team_home_flag.length < 2)
+    return roundMatches.every(m => m.team_home === 'TBD' || m.team_away === 'TBD')
   }
 
   return (
