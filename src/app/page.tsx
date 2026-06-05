@@ -13,7 +13,7 @@ const PRIZES = [
     color: 'var(--dorado)',
     border: 'rgba(246,180,14,0.4)',
     bg: 'rgba(246,180,14,0.07)',
-    items: ['Camiseta oficial Argentina 🇦🇷', 'Tabla de madera 🪵', 'Chapa parrillera 🔥', '5 Chimis 🫙🫙🫙🫙🫙'],
+    items: ['Camiseta oficial Argentina', 'Tabla de madera', 'Chapa parrillera', '5 Chimis Sabor Argento'],
   },
   {
     rank: '2°',
@@ -21,7 +21,7 @@ const PRIZES = [
     color: '#c0c0c0',
     border: 'rgba(192,192,192,0.3)',
     bg: 'rgba(192,192,192,0.05)',
-    items: ['Tabla de madera 🪵', '4 Chimis 🫙🫙🫙🫙'],
+    items: ['Tabla de madera', '4 Chimis Sabor Argento'],
   },
   {
     rank: '3°',
@@ -29,7 +29,7 @@ const PRIZES = [
     color: '#cd7f32',
     border: 'rgba(205,127,50,0.3)',
     bg: 'rgba(205,127,50,0.05)',
-    items: ['5 Chimis 🫙🫙🫙🫙🫙'],
+    items: ['5 Chimis Sabor Argento'],
   },
 ]
 
@@ -70,10 +70,10 @@ function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
                   <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)' }}>★ TOP ★</span>
                 )}
               </div>
-              <ul className="flex flex-col gap-2.5">
+              <ul className="flex flex-col gap-2">
                 {items.map(item => (
-                  <li key={item} className="flex items-center gap-2" style={{ color: 'rgba(255,255,255,0.9)', fontSize: '15px' }}>
-                    <span style={{ color, fontWeight: 'bold', fontSize: '16px' }}>›</span>
+                  <li key={item} className="flex items-center gap-2 font-brand" style={{ color: 'rgba(255,255,255,0.92)', fontSize: '20px', fontWeight: 700, lineHeight: 1.2 }}>
+                    <span style={{ color, fontWeight: 900, fontSize: '20px' }}>›</span>
                     {item}
                   </li>
                 ))}
@@ -122,8 +122,16 @@ export default function HomePage() {
   // SSR: sprites fijos variados. Client: reemplaza con random en cada visita.
   const [sprites, setSprites] = useState<FlyingConfig[]>(SSR_SPRITES)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [participantCount, setParticipantCount] = useState<number | null>(null)
 
   useEffect(() => { setSprites(getRandomSprites()) }, [])
+
+  useEffect(() => {
+    createClient()
+      .from('participants')
+      .select('id', { count: 'exact', head: true })
+      .then(({ count }) => { if (count !== null) setParticipantCount(count) })
+  }, [])
 
   // Detecta sesión activa para cambiar el CTA (sin redirigir, para no romper la navegación)
   useEffect(() => {
@@ -258,6 +266,13 @@ export default function HomePage() {
           )}
         </p>
 
+        {/* Contador de participantes */}
+        {participantCount !== null && participantCount > 0 && (
+          <p className="font-pixel text-white/30 mt-3 anim-hero-cta" style={{ fontSize: '7px', letterSpacing: '1px' }}>
+            {participantCount} JUGADORES ANOTADOS
+          </p>
+        )}
+
         </div>{/* fin wrapper z-index:2 */}
 
         {/* Franja bandera argentina */}
@@ -290,6 +305,27 @@ export default function HomePage() {
         </div>
 
         <PrizePodium prizes={PRIZES} />
+
+        {/* CTA secundario bajo los premios */}
+        <div className="text-center mt-8">
+          {isLoggedIn ? (
+            <Link href="/prode"
+              className="font-brand text-white active:scale-95 transition-all inline-block"
+              style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '2px',
+                background: 'var(--negro)', border: '2px solid var(--celeste)',
+                padding: '10px 32px', boxShadow: '0 4px 0 var(--celeste-dark)' }}>
+              IR A MI PRODE →
+            </Link>
+          ) : (
+            <Link href="/registro"
+              className="font-brand text-white active:scale-95 transition-all inline-block"
+              style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '2px',
+                background: 'var(--negro)', border: '2px solid var(--dorado)',
+                padding: '10px 32px', boxShadow: '0 4px 0 var(--dorado-dark)' }}>
+              PARTICIPAR GRATIS →
+            </Link>
+          )}
+        </div>
       </section>
 
       {/* CÓMO FUNCIONA — al final, más chico */}
@@ -301,7 +337,7 @@ export default function HomePage() {
           {[
             { icon: '📝', step: '01', title: 'REGISTRATE', desc: 'Nombre, teléfono y mail. Gratis.' },
             { icon: '⚽', step: '02', title: 'CARGA TU PRODE', desc: 'Predeci partidos de Argentina, Brasil, Espana y mas.' },
-            { icon: '🫙', step: '03', title: 'SUMA CHIMICHURROS', desc: 'Los chimichurros son tus puntos. Exacto = 3 · Ganador = 1' },
+            { icon: '🫙', step: '03', title: 'SUMA CHIMICHURROS', desc: 'Los chimichurros son tus puntos. Mientras mas acertás, mas sumás.' },
             { icon: '🏆', step: '04', title: 'GANATE LOS PREMIOS', desc: 'Los del podio se llevan lo mejor de Sabor Argento.' },
           ].map(({ icon, step, title, desc }, i) => (
             <div key={step} className={`flex items-center gap-4 p-4 anim-reveal-${i+1}`}

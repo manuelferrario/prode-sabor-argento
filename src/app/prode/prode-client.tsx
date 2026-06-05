@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import type { Match, Participant, Prediction, BonusPrediction } from '@/lib/types'
@@ -59,6 +59,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   })
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const supabase = createClient()
 
@@ -66,38 +67,38 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
     return new Date(match.match_date) <= new Date(now)
   }, [now])
 
-  async function savePrediction(matchId: string) {
-    const pred = predMap[matchId]
-    if (!pred || pred.home === '' || pred.away === '') return
+  // Limpia timers al desmontar
+  useEffect(() => {
+    return () => { Object.values(debounceTimers.current).forEach(clearTimeout) }
+  }, [])
 
+  // Guarda con valores explícitos (evita stale closure en auto-save)
+  async function savePredictionValues(matchId: string, home: string, away: string) {
+    if (!home || !away) return
     setSaving(s => ({ ...s, [matchId]: true }))
-
     await supabase
       .from('predictions')
       .upsert({
         participant_id: participant.id,
         match_id: matchId,
-        predicted_home: parseInt(pred.home),
-        predicted_away: parseInt(pred.away),
+        predicted_home: parseInt(home),
+        predicted_away: parseInt(away),
       }, { onConflict: 'participant_id,match_id' })
-
     setSaving(s => ({ ...s, [matchId]: false }))
     setSaved(s => ({ ...s, [matchId]: true }))
     fireConfetti()
     setTimeout(() => setSaved(s => ({ ...s, [matchId]: false })), 2000)
   }
 
-  // Guardar TODAS las predicciones pendientes de una vez
-  async function saveAll() {
-    const pending = Object.entries(predMap).filter(
-      ([matchId, pred]) => pred.home !== '' && pred.away !== '' && !saved[matchId]
-    )
-    if (pending.length === 0) return
-    setSaving(s => ({ ...s, saveAll: true }))
-    await Promise.all(pending.map(([matchId]) => savePrediction(matchId)))
-    setSaving(s => ({ ...s, saveAll: false }))
-    setSaved(s => ({ ...s, saveAll: true }))
-    setTimeout(() => setSaved(s => ({ ...s, saveAll: false })), 3000)
+  // Auto-save: se dispara 900ms después de que el usuario ingresa ambos scores
+  function handleChange(matchId: string, home: string, away: string) {
+    setPredMap(m => ({ ...m, [matchId]: { home, away } }))
+    if (debounceTimers.current[matchId]) clearTimeout(debounceTimers.current[matchId])
+    if (home !== '' && away !== '') {
+      debounceTimers.current[matchId] = setTimeout(() => {
+        savePredictionValues(matchId, home, away)
+      }, 900)
+    }
   }
 
   async function saveBonus() {
@@ -122,8 +123,12 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   }
 
   const roundOrder = ['group', 'round_of_32', 'round_of_16', 'quarterfinal', 'semifinal', 'final']
-  const predCount = Object.values(predMap).filter(p => p.home !== '' && p.away !== '').length
-  const availableCount = matches.filter(m => !isLocked(m)).length
+  const knockoutRounds = ['round_of_32', 'round_of_16', 'quarterfinal', 'semifinal', 'final']
+
+  // Una ronda eliminatoria está "bloqueada" si ningún equipo tiene bandera asignada todavía
+  function isRoundBracketLocked(roundMatches: Match[]) {
+    return roundMatches.every(m => !m.team_home_flag || m.team_home_flag.length < 2)
+  }
 
   return (
     <main className="min-h-screen pb-20" style={{ background: 'var(--background)' }}>
@@ -265,21 +270,6 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
           </button>
         </div>
 
-        {/* GUARDAR TODO — botón flotante cuando hay predicciones sin guardar */}
-        {Object.values(predMap).some(p => p.home !== '' && p.away !== '') && (
-          <button
-            onClick={saveAll}
-            disabled={!!saving.saveAll}
-            className="w-full mb-5 py-3 font-brand transition-all active:scale-95 disabled:opacity-50"
-            style={{
-              background: saved.saveAll ? '#009B3A' : 'var(--celeste)',
-              color: 'white', fontSize: '20px', fontWeight: 900, letterSpacing: '2px',
-              boxShadow: '0 4px 0 var(--celeste-dark)',
-            }}>
-            {saved.saveAll ? '✓ TODO GUARDADO' : saving.saveAll ? 'GUARDANDO...' : '💾 GUARDAR TODO'}
-          </button>
-        )}
-
         {/* Partidos por ronda */}
         {roundOrder.map(round => {
           const roundMatches = matchesByRound[round]
@@ -287,6 +277,29 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
 
           // Lista ordenada de todos los IDs para navegación con flecha
           const allMatchIds = roundMatches.map(m => m.id)
+
+          // Rondas eliminatorias bloqueadas hasta que clasifiquen los equipos
+          if (knockoutRounds.includes(round) && isRoundBracketLocked(roundMatches)) {
+            return (
+              <div key={round} className="mb-6">
+                <h2 className="font-pixel text-white/30 mb-3" style={{ fontSize: '8px', letterSpacing: '2px' }}>
+                  {ROUND_LABELS[round] ?? round}
+                </h2>
+                <div className="p-5 text-center" style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px dashed rgba(255,255,255,0.1)',
+                }}>
+                  <p className="text-2xl mb-2">🔒</p>
+                  <p className="font-brand text-white/40" style={{ fontSize: '20px', fontWeight: 900 }}>
+                    SE DEFINE AL TERMINAR LOS GRUPOS
+                  </p>
+                  <p className="font-pixel text-white/20 mt-2" style={{ fontSize: '7px', letterSpacing: '1px' }}>
+                    LOS EQUIPOS CLASIFICADOS APARECEN ACA
+                  </p>
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div key={round} className="mb-6">
@@ -310,10 +323,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                       hasPred={hasPred}
                       saving={!!saving[match.id]}
                       saved={!!saved[match.id]}
-                      onChange={(home, away) =>
-                        setPredMap(m => ({ ...m, [match.id]: { home, away } }))
-                      }
-                      onSave={() => savePrediction(match.id)}
+                      onChange={(home, away) => handleChange(match.id, home, away)}
                       nextMatchId={nextMatchId}
                     />
                   )
@@ -328,7 +338,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
 }
 
 function MatchCard({
-  match, locked, pred, hasPred, saving, saved, onChange, onSave, nextMatchId
+  match, locked, pred, hasPred, saving, saved, onChange, nextMatchId
 }: {
   match: Match
   locked: boolean
@@ -337,7 +347,6 @@ function MatchCard({
   saving: boolean
   saved: boolean
   onChange: (home: string, away: string) => void
-  onSave: () => void
   nextMatchId?: string
 }) {
   const date = new Date(match.match_date)
@@ -443,44 +452,32 @@ function MatchCard({
         </div>
       )}
 
-      {/* Botones — guardar + siguiente */}
+      {/* Auto-save status + siguiente */}
       {!locked && !isFinished && (
-        <>
-          <button
-            onClick={onSave}
-            disabled={saving || !pred?.home || !pred?.away}
-            className="w-full mt-2 py-2 font-brand transition-all active:scale-95 disabled:opacity-40"
-            style={{
-              background: saved ? '#009B3A' : hasPred ? 'rgba(116,172,223,0.15)' : 'rgba(255,255,255,0.04)',
-              fontSize: '16px', fontWeight: 900, letterSpacing: '1px',
-              color: saved ? 'white' : hasPred ? 'var(--celeste)' : 'rgba(255,255,255,0.2)',
-              border: `1.5px solid ${saved ? '#009B3A' : hasPred ? 'rgba(116,172,223,0.4)' : 'transparent'}`,
-            }}
-          >
-            {saved ? '✓ GUARDADO' : saving ? '⏳ GUARDANDO...' : 'GUARDAR'}
-          </button>
-
+        <div className="mt-2 flex items-center justify-between min-h-[28px]">
+          <span className="font-pixel" style={{ fontSize: '7px',
+            color: saved ? '#009B3A' : saving ? 'rgba(255,255,255,0.25)' : 'transparent' }}>
+            {saved ? '✓ GUARDADO' : saving ? 'GUARDANDO...' : '.'}
+          </span>
           {hasPred && nextMatchId && (
             <button
               type="button"
               onClick={() => {
-                onSave()
-                setTimeout(() => {
-                  const el = document.getElementById(`match-${nextMatchId}`)
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                }, 200)
+                const el = document.getElementById(`match-${nextMatchId}`)
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
               }}
-              className="w-full mt-1 py-2 font-brand transition-all active:scale-95"
+              className="font-brand transition-all active:scale-95"
               style={{
                 background: 'rgba(116,172,223,0.06)',
-                color: 'rgba(116,172,223,0.7)', fontSize: '15px', fontWeight: 900,
+                color: 'rgba(116,172,223,0.6)', fontSize: '14px', fontWeight: 900,
                 border: '1px solid rgba(116,172,223,0.15)',
+                padding: '3px 10px',
               }}
             >
               SIGUIENTE →
             </button>
           )}
-        </>
+        </div>
       )}
     </div>
   )
