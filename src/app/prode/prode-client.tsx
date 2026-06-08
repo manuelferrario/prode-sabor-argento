@@ -59,6 +59,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   })
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
+  const [showOnlyMissing, setShowOnlyMissing] = useState(false)
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const supabase = createClient()
@@ -130,6 +131,30 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
     return roundMatches.every(m => m.team_home === 'TBD' || m.team_away === 'TBD')
   }
 
+  function hasPrediction(matchId: string) {
+    const p = predMap[matchId]
+    return !!p && p.home !== '' && p.away !== ''
+  }
+
+  // Progreso: sólo cuentan los partidos que ya se pueden predecir (rondas no bloqueadas)
+  const predictableMatches = matches.filter(m => {
+    if (knockoutRounds.includes(m.round)) {
+      const roundMatches = matchesByRound[m.round]
+      return roundMatches && !isRoundBracketLocked(roundMatches)
+    }
+    return true
+  })
+  const totalCount = predictableMatches.length
+  const predictedCount = predictableMatches.filter(m => hasPrediction(m.id)).length
+  const missingCount = totalCount - predictedCount
+  // El filtro sólo aplica si todavía queda algo pendiente (evita listas vacías "pegadas")
+  const filterActive = showOnlyMissing && missingCount > 0
+
+  function scrollToMatches() {
+    const el = document.getElementById('matches-section')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <main className="min-h-screen pb-20" style={{ background: 'var(--background)' }}>
       {/* Header compacto */}
@@ -170,10 +195,69 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
 
       <div className="px-5 py-6 max-w-lg mx-auto">
         {/* Bienvenida */}
-        <div className="mb-5">
+        <div className="mb-3">
           <h1 className="font-brand text-white" style={{ fontSize: '36px', fontWeight: 900, lineHeight: 1 }}>
             HOLA, {participant.name.split(' ')[0].toUpperCase()}!
           </h1>
+        </div>
+
+        {/* Notificación: partidos pendientes */}
+        {missingCount > 0 && (
+          <button
+            type="button"
+            onClick={() => { setShowOnlyMissing(true); scrollToMatches() }}
+            className="w-full mb-3 px-4 py-2.5 flex items-center gap-3 text-left transition-all active:scale-[0.99]"
+            style={{
+              background: 'rgba(246,180,14,0.08)',
+              border: '1px solid rgba(246,180,14,0.22)',
+              borderLeft: '3px solid var(--dorado)',
+            }}
+          >
+            <span className="text-base flex-shrink-0">⏰</span>
+            <p className="font-pixel text-white/60 flex-1" style={{ fontSize: '8px', lineHeight: 1.6, letterSpacing: '0.5px' }}>
+              TE FALTAN <span style={{ color: 'var(--dorado)', fontWeight: 700 }}>{missingCount}</span> PARTIDO{missingCount === 1 ? '' : 'S'} POR PREDECIR
+            </p>
+            <span className="font-pixel text-white/30 flex-shrink-0" style={{ fontSize: '7px' }}>VER →</span>
+          </button>
+        )}
+
+        {/* Barra de progreso + filtro */}
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-pixel text-white/25" style={{ fontSize: '7px', letterSpacing: '1.5px' }}>
+                TU PROGRESO
+              </span>
+              <span className="font-pixel text-white/35" style={{ fontSize: '7px' }}>
+                {predictedCount}/{totalCount} PREDICHOS
+              </span>
+            </div>
+            <div style={{ height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                width: `${totalCount > 0 ? Math.round((predictedCount / totalCount) * 100) : 0}%`,
+                background: predictedCount === totalCount && totalCount > 0 ? '#009B3A' : 'var(--celeste)',
+                borderRadius: '2px',
+                transition: 'width 0.5s cubic-bezier(0.22,1,0.36,1)',
+              }} />
+            </div>
+          </div>
+
+          {missingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowOnlyMissing(s => !s)}
+              className="font-pixel transition-all active:scale-95 flex-shrink-0 whitespace-nowrap"
+              style={{
+                fontSize: '7px', letterSpacing: '0.5px', padding: '7px 10px',
+                background: showOnlyMissing ? 'rgba(116,172,223,0.15)' : 'rgba(255,255,255,0.04)',
+                color: showOnlyMissing ? 'var(--celeste)' : 'rgba(255,255,255,0.4)',
+                border: `1px solid ${showOnlyMissing ? 'rgba(116,172,223,0.4)' : 'rgba(255,255,255,0.12)'}`,
+              }}
+            >
+              {showOnlyMissing ? '✕ VER TODOS' : `SOLO LOS QUE FALTAN`}
+            </button>
+          )}
         </div>
 
         {/* Predicciones bonus */}
@@ -271,15 +355,22 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
         </div>
 
         {/* Partidos por ronda */}
+        <div id="matches-section">
+        {showOnlyMissing && missingCount === 0 && (
+          <div className="mb-6 p-5 text-center" style={{ background: 'rgba(0,155,58,0.06)', border: '1px dashed rgba(0,155,58,0.3)' }}>
+            <p className="text-2xl mb-2">🎉</p>
+            <p className="font-brand text-white/70" style={{ fontSize: '18px', fontWeight: 900 }}>
+              YA PREDIJISTE TODO LO QUE PODÍAS
+            </p>
+          </div>
+        )}
         {roundOrder.map(round => {
           const roundMatches = matchesByRound[round]
           if (!roundMatches?.length) return null
 
-          // Lista ordenada de todos los IDs para navegación con flecha
-          const allMatchIds = roundMatches.map(m => m.id)
-
           // Rondas eliminatorias bloqueadas hasta que clasifiquen los equipos
           if (knockoutRounds.includes(round) && isRoundBracketLocked(roundMatches)) {
+            if (filterActive) return null
             return (
               <div key={round} className="mb-6">
                 <h2 className="font-pixel text-white/30 mb-3" style={{ fontSize: '8px', letterSpacing: '2px' }}>
@@ -301,17 +392,31 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             )
           }
 
+          // Lista ordenada de todos los IDs de la ronda para navegación con flecha
+          const allMatchIds = roundMatches.map(m => m.id)
+
+          // Con el filtro activo, mostramos sólo los que faltan predecir
+          const visibleMatches = filterActive
+            ? roundMatches.filter(m => !hasPrediction(m.id))
+            : roundMatches
+
+          if (filterActive && visibleMatches.length === 0) return null
+
           return (
             <div key={round} className="mb-6">
               <h2 className="font-pixel text-white/30 mb-3" style={{ fontSize: '8px', letterSpacing: '2px' }}>
                 {ROUND_LABELS[round] ?? round}
+                {filterActive && (
+                  <span className="text-white/15"> · {visibleMatches.length} POR CARGAR</span>
+                )}
               </h2>
 
               <div className="flex flex-col gap-4">
-                {roundMatches.map((match, idx) => {
+                {visibleMatches.map((match) => {
                   const locked = isLocked(match)
                   const pred = predMap[match.id]
                   const hasPred = pred?.home !== '' && pred?.away !== ''
+                  const idx = allMatchIds.indexOf(match.id)
                   const nextMatchId = allMatchIds[idx + 1]
 
                   return (
@@ -332,6 +437,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             </div>
           )
         })}
+        </div>
       </div>
     </main>
   )
