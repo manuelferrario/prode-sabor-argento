@@ -44,76 +44,107 @@ const PRIZE_PHOTOS: { src: string; label: string }[] = [
 
 function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
   return (
-    <div className="max-w-sm mx-auto flex flex-col gap-5">
-      {prizes.map(({ rank, medal, color, border, bg, items }, i) => {
-        const isFirst = i === 0
-        return (
-          <div key={rank}>
-            {/* Card del premio */}
+    <div className="max-w-lg mx-auto">
+
+      {/* Galería horizontal — full bleed, snap scroll */}
+      <div className="relative mb-8" style={{ marginLeft: '-1.25rem', marginRight: '-1.25rem' }}>
+        <div
+          className="flex gap-3 overflow-x-auto"
+          style={{
+            scrollSnapType: 'x mandatory',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            paddingLeft: '1.25rem',
+            paddingRight: '3rem',  /* espacio para que se vea el borde de la 2da foto */
+          }}
+        >
+          {PRIZE_PHOTOS.map(({ src, label }) => (
             <div
-              className={`p-4 anim-reveal-${Math.min(i+1,4)}`}
+              key={label}
+              className="flex-shrink-0 overflow-hidden"
               style={{
-                background: bg,
-                border: `2px solid ${border}`,
-                boxShadow: `0 4px 0 ${border}`,
+                width: '68vw',
+                maxWidth: '260px',
+                scrollSnapAlign: 'start',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: '#141414',
               }}
             >
-              <div className="flex items-center gap-3 mb-3 pb-2" style={{ borderBottom: `1px solid ${border}` }}>
-                <span style={{ fontSize: isFirst ? '40px' : '32px' }}>{medal}</span>
-                <div className="flex-1">
-                  <p className="font-pixel text-white/30" style={{ fontSize: '8px', letterSpacing: '2px' }}>PUESTO</p>
-                  <p className="font-brand leading-none" style={{ fontSize: isFirst ? '44px' : '36px', fontWeight: 900, color, lineHeight: 1 }}>
-                    {rank}
-                  </p>
-                </div>
-                {isFirst && (
-                  <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)' }}>★ TOP ★</span>
-                )}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={src}
+                alt={label}
+                style={{ width: '100%', height: '185px', objectFit: 'cover', display: 'block' }}
+                onError={(e) => {
+                  const el = e.currentTarget.parentElement!
+                  e.currentTarget.style.display = 'none'
+                  if (!el.querySelector('.ph')) {
+                    el.innerHTML = `<div class="ph" style="height:185px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.03)"><span style="font-size:32px">📸</span><span style="color:rgba(255,255,255,0.25);font-size:10px;font-family:var(--font-body)">${label}</span></div>`
+                  }
+                }}
+              />
+              <div style={{ padding: '10px 13px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                <p className="font-brand text-white" style={{ fontSize: '16px', fontWeight: 700, lineHeight: 1.2 }}>
+                  {label}
+                </p>
+                <p className="font-pixel text-white/25 mt-0.5" style={{ fontSize: '7px', letterSpacing: '1px' }}>
+                  1° PREMIO
+                </p>
               </div>
-              <ul className="flex flex-col gap-2">
-                {items.map(item => (
-                  <li key={item} className="flex items-center gap-2 font-brand" style={{ color: 'rgba(255,255,255,0.92)', fontSize: '20px', fontWeight: 700, lineHeight: 1.2 }}>
-                    <span style={{ color, fontWeight: 900, fontSize: '20px' }}>›</span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+            </div>
+          ))}
+        </div>
+        {/* Fade derecho — hint de scroll */}
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-16"
+          style={{ background: 'linear-gradient(to left, #0a0a0a 20%, transparent 100%)' }}
+        />
+      </div>
+
+      {/* Podio de premios — lista limpia con chips */}
+      <div>
+        {prizes.map(({ rank, medal, color, border, bg, items }, i) => (
+          <div
+            key={rank}
+            className="flex items-start gap-4 py-4 px-4"
+            style={{
+              background: i === 0 ? bg : 'transparent',
+              borderLeft: `3px solid ${border}`,
+              borderBottom: i < prizes.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            }}
+          >
+            {/* Medalla + puesto */}
+            <div className="flex-shrink-0 text-center" style={{ width: '38px' }}>
+              <div style={{ fontSize: '24px', lineHeight: 1.1 }}>{medal}</div>
+              <div className="font-brand" style={{ fontSize: '22px', fontWeight: 900, color, lineHeight: 1 }}>{rank}</div>
             </div>
 
-            {/* Fotos del 1° premio — siempre visibles debajo */}
-            {isFirst && (
-              <div className="mt-2 p-3" style={{
-                background: 'rgba(246,180,14,0.05)',
-                border: `1px solid ${border}`,
-                borderTop: 'none',
-              }}>
-                <div className="grid grid-cols-2 gap-3">
-                  {PRIZE_PHOTOS.map(({ src, label }) => (
-                    <div key={label} className="overflow-hidden"
-                      style={{ border: '1px solid rgba(255,255,255,0.1)', borderRadius: '4px' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={src}
-                        alt={label}
-                        style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }}
-                        onError={(e) => {
-                          // Mientras no haya fotos, muestra placeholder con emoji
-                          const el = e.currentTarget.parentElement!
-                          e.currentTarget.style.display = 'none'
-                          if (!el.querySelector('.ph')) {
-                            el.innerHTML = `<div class="ph" style="height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.04)"><span style="font-size:28px">📸</span><span style="color:rgba(255,255,255,0.3);font-size:10px">${label}</span></div>`
-                          }
-                        }}
-                      />
-                      <p className="text-white/50 text-center py-1" style={{ fontSize: '10px' }}>{label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Items como chips */}
+            <div className="flex-1 flex flex-wrap gap-1.5 pt-1">
+              {items.map(item => (
+                <span
+                  key={item}
+                  style={{
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.11)',
+                    borderRadius: '4px',
+                    color: 'rgba(255,255,255,0.82)',
+                    fontSize: '13px',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 500,
+                    padding: '4px 9px',
+                    lineHeight: 1.4,
+                    display: 'inline-block',
+                  }}
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
           </div>
-        )
-      })}
+        ))}
+      </div>
     </div>
   )
 }
@@ -284,10 +315,10 @@ export default function HomePage() {
       </section>
 
       {/* PREMIOS — sección hero, bien visible */}
-      <section className="px-5 pt-12 pb-8 border-t" style={{ borderColor: 'var(--border)' }}>
+      <section className="pt-12 pb-8 border-t" style={{ borderColor: 'var(--border)' }}>
 
         {/* Título premios */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 px-5">
           <div className="inline-flex items-center gap-3 px-6 py-3 mb-4" style={{
             background: 'rgba(246,180,14,0.1)',
             border: '2px solid rgba(246,180,14,0.4)',
@@ -304,10 +335,12 @@ export default function HomePage() {
           </p>
         </div>
 
-        <PrizePodium prizes={PRIZES} />
+        <div className="px-5">
+          <PrizePodium prizes={PRIZES} />
+        </div>
 
         {/* CTA secundario bajo los premios */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-8 px-5">
           {isLoggedIn ? (
             <Link href="/prode"
               className="font-brand text-white active:scale-95 transition-all inline-block"
