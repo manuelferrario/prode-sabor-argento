@@ -360,9 +360,6 @@ function MatchCard({
   const homeFlag = isoToFlag(match.team_home_flag)
   const awayFlag = isoToFlag(match.team_away_flag)
 
-  // Tab automático: ref al input del score visitante
-  const awayInputRef = useRef<HTMLInputElement>(null)
-
   return (
     <div
       id={`match-${match.id}`}
@@ -408,22 +405,15 @@ function MatchCard({
             </div>
           ) : (
             <>
-              <ScoreInput
+              <ScoreStepper
                 value={pred?.home ?? ''}
                 disabled={locked}
-                onChange={v => {
-                  onChange(v, pred?.away ?? '')
-                  // Auto-avanzar al score visitante cuando se ingresa 1 dígito
-                  if (v !== '' && (pred?.away ?? '') === '') {
-                    setTimeout(() => awayInputRef.current?.focus(), 50)
-                  }
-                }}
+                onChange={v => onChange(v, pred?.away ?? '')}
               />
               <span className="text-white/30 font-pixel" style={{ fontSize: '10px' }}>-</span>
-              <ScoreInput
+              <ScoreStepper
                 value={pred?.away ?? ''}
                 disabled={locked}
-                inputRef={awayInputRef}
                 onChange={v => onChange(pred?.home ?? '', v)}
               />
             </>
@@ -483,44 +473,57 @@ function MatchCard({
   )
 }
 
-function ScoreInput({ value, disabled, onChange, inputRef }: {
+function ScoreStepper({ value, disabled, onChange }: {
   value: string
   disabled: boolean
   onChange: (v: string) => void
-  inputRef?: React.RefObject<HTMLInputElement | null>
 }) {
   const [popping, setPopping] = useState(false)
+  const num = value === '' ? null : parseInt(value)
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    onChange(e.target.value)
-    if (e.target.value !== '') {
-      setPopping(true)
-      setTimeout(() => setPopping(false), 350)
-    }
+  function set(n: number) {
+    const clamped = Math.max(0, Math.min(20, n))
+    onChange(String(clamped))
+    setPopping(true)
+    setTimeout(() => setPopping(false), 250)
   }
 
+  function increment() { set((num ?? -1) + 1) }
+  function decrement() { if (num !== null) set(num - 1) }
+
+  const canDecrement = !disabled && num !== null && num > 0
+  const canIncrement = !disabled && (num === null || num < 20)
+
   return (
-    <input
-      ref={inputRef}
-      type="number" min="0" max="20"
-      inputMode="numeric"
-      pattern="[0-9]*"
-      enterKeyHint="next"
-      value={value}
-      disabled={disabled}
-      onChange={handleChange}
-      className={[
-        'score-input',
-        'disabled:cursor-not-allowed disabled:opacity-40',
-        value !== '' ? 'has-value' : '',
-        popping ? 'anim-pop' : '',
-      ].join(' ')}
-      style={{
-        transition: 'border-color 0.2s, box-shadow 0.2s',
-        fontWeight: value !== '' ? 'bold' : 'normal',
-        color: value !== '' ? 'var(--celeste)' : 'rgba(255,255,255,0.3)',
-      }}
-    />
+    <div className="score-stepper">
+      <button
+        type="button"
+        disabled={!canIncrement}
+        onClick={increment}
+        className="score-stepper-btn"
+        aria-label="Sumar gol"
+      >
+        +
+      </button>
+      <div
+        className={[
+          'score-stepper-value',
+          value !== '' ? 'has-value' : '',
+          popping ? 'anim-pop' : '',
+        ].join(' ')}
+      >
+        {value === '' ? '–' : value}
+      </div>
+      <button
+        type="button"
+        disabled={!canDecrement}
+        onClick={decrement}
+        className="score-stepper-btn"
+        aria-label="Restar gol"
+      >
+        −
+      </button>
+    </div>
   )
 }
 
