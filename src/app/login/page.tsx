@@ -166,6 +166,14 @@ export default function LoginPage() {
                 </button>
               </form>
 
+              <button
+                type="button"
+                onClick={() => { setShowReset(true); setError('') }}
+                className="block text-center text-white/30 text-xs mt-3 underline hover:text-white/60 w-full transition-colors"
+              >
+                Olvidé mi contraseña
+              </button>
+
               <p className="text-center text-white/30 text-xs mt-3">
                 No tenés cuenta?{' '}
                 <Link href="/registro" className="underline hover:text-white/60 transition-colors">
