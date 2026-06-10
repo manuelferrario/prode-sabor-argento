@@ -156,7 +156,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   }
 
   return (
-    <main className="min-h-screen pb-20" style={{ background: 'var(--background)' }}>
+    <main className="min-h-screen pb-20" style={{ background: 'var(--background)', overflowX: 'hidden' }}>
       {/* Header compacto */}
       <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 border-b"
         style={{ background: 'var(--negro)', borderColor: 'var(--border)' }}>
@@ -247,7 +247,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             <button
               type="button"
               onClick={() => setShowOnlyMissing(s => !s)}
-              className="font-pixel transition-all active:scale-95 flex-shrink-0 whitespace-nowrap"
+              className="font-pixel transition-all active:scale-95 flex-shrink-0"
               style={{
                 fontSize: '7px', letterSpacing: '0.5px', padding: '7px 10px',
                 background: showOnlyMissing ? 'rgba(116,172,223,0.15)' : 'rgba(255,255,255,0.04)',
@@ -255,7 +255,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                 border: `1px solid ${showOnlyMissing ? 'rgba(116,172,223,0.4)' : 'rgba(255,255,255,0.12)'}`,
               }}
             >
-              {showOnlyMissing ? '✕ VER TODOS' : `SOLO LOS QUE FALTAN`}
+              {showOnlyMissing ? '✕ TODOS' : `FALTAN ${missingCount}`}
             </button>
           )}
         </div>

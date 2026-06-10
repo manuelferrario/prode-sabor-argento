@@ -411,18 +411,30 @@ export default function RegistroPage() {
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, instagram: true }))}
-                  className="flex items-center justify-center gap-2 py-3 font-brand transition-all active:scale-95"
+                  className="flex items-center gap-3 w-full transition-all active:scale-[0.98]"
                   style={{
-                    background: 'rgba(0,155,58,0.2)',
-                    color: '#009B3A',
-                    fontSize: '18px',
-                    fontWeight: 900,
-                    border: '1.5px solid #009B3A',
-                    letterSpacing: '1px',
+                    background: 'rgba(0,155,58,0.08)',
+                    border: '1.5px solid rgba(0,155,58,0.45)',
+                    borderRadius: '8px',
+                    padding: '14px 16px',
                     animation: 'pulse-soft 2s ease-in-out infinite',
                   }}
                 >
-                  ✓ YA LOS SEGUÍ
+                  {/* Checkbox vacío */}
+                  <div style={{
+                    width: 24, height: 24, flexShrink: 0,
+                    border: '2px solid #009B3A',
+                    borderRadius: '5px',
+                    background: 'rgba(0,155,58,0.1)',
+                  }} />
+                  <div className="text-left">
+                    <p className="font-brand text-white" style={{ fontSize: '16px', fontWeight: 900, lineHeight: 1.2 }}>
+                      YA SEGUÍ A @SABORARGENTOAR
+                    </p>
+                    <p className="text-white/40 mt-0.5" style={{ fontSize: '12px' }}>
+                      Tocá acá para confirmar
+                    </p>
+                  </div>
                 </button>
               )}
 
