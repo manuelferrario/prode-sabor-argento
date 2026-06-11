@@ -1,37 +1,46 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { PixelChimi } from '@/components/PixelChimi'
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
-  const [sessionReady, setSessionReady] = useState(false)
+  const [ready, setReady] = useState(false)
 
-  // Supabase intercambia el code del link de email y establece sesión automáticamente
-  // via el auth/callback handler. Acá solo verificamos que haya sesión activa.
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        setSessionReady(true)
+    const code = searchParams.get('code')
+
+    async function init() {
+      if (code) {
+        // PKCE flow: intercambia el code por sesión
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) { router.replace('/login?error=reset-expired'); return }
+        setReady(true)
       } else {
-        router.replace('/login')
+        // Ya hay sesión activa (ej: recarga de página)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) { setReady(true) }
+        else { router.replace('/login') }
       }
-    })
-  }, [router])
+    }
+
+    init()
+  }, [router, searchParams])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (password !== confirm) { setError('Las contraseñas no coinciden.'); return }
-    if (password.length < 6) { setError('La contraseña tiene que tener al menos 6 caracteres.'); return }
+    if (password.length < 6) { setError('Mínimo 6 caracteres.'); return }
 
     setLoading(true)
     setError('')
@@ -39,7 +48,7 @@ export default function ResetPasswordPage() {
     const { error: updateError } = await supabase.auth.updateUser({ password })
 
     if (updateError) {
-      setError('No se pudo actualizar la contraseña. Pedí un nuevo link.')
+      setError('No se pudo actualizar. Pedí un nuevo link desde el login.')
       setLoading(false)
       return
     }
@@ -48,7 +57,7 @@ export default function ResetPasswordPage() {
     setTimeout(() => router.replace('/prode'), 2500)
   }
 
-  if (!sessionReady) return null
+  if (!ready) return null
 
   return (
     <main className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
@@ -140,5 +149,13 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }
