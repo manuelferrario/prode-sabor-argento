@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Prode Sabor Argento — Mundial 2026
 
-## Getting Started
+App de prode del Mundial 2026 para Sabor Argento.
+Stack: Next.js 16 · Supabase · Vercel
 
-First, run the development server:
+## Setup local
+
+```bash
+git clone https://github.com/manuelferrario/prode-sabor-argento.git
+cd prode-sabor-argento
+npm install
+cp .env.example .env.local
+```
+
+Completar `.env.local` con los valores reales y luego:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Variables de entorno
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Donde conseguirla |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API |
+| `FOOTBALL_DATA_API_TOKEN` | football-data.org → cuenta |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` en local |
+| `ADMIN_PASSWORD` | El mismo que esta en Vercel |
+| `CRON_SECRET` | El mismo que esta en Vercel |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## URLs principales
 
-## Learn More
+| Ruta | Descripcion |
+|---|---|
+| `/` | Landing page |
+| `/registro` | Registro de participantes |
+| `/login` | Login |
+| `/prode` | Fixture con predicciones |
+| `/ranking` | Tabla de posiciones |
+| `/admin` | Dashboard de administracion (requiere ADMIN_PASSWORD) |
+| `/reset-password` | Cambio de contrasena |
 
-To learn more about Next.js, take a look at the following resources:
+## Operacion durante el torneo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Despues de cada partido: entrar a `/admin` → **SYNC RESULTADOS**.
+Esto actualiza scores y recalcula chimichurros de todos los participantes.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El cron automatico corre todos los dias a las 6AM UTC (3AM Argentina).
