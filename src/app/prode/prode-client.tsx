@@ -40,10 +40,9 @@ interface Props {
   matches: Match[]
   predictions: Prediction[]
   bonusPrediction: BonusPrediction | null
-  now: string
 }
 
-export default function ProdeClient({ participant, matches, predictions, bonusPrediction, now }: Props) {
+export default function ProdeClient({ participant, matches, predictions, bonusPrediction }: Props) {
   const [predMap, setPredMap] = useState<Record<string, { home: string; away: string }>>(
     () => {
       const map: Record<string, { home: string; away: string }> = {}
@@ -60,17 +59,25 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [saved, setSaved] = useState<Record<string, boolean>>({})
   const [showOnlyMissing, setShowOnlyMissing] = useState(false)
+  const [, setTick] = useState(0)
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   const supabase = createClient()
 
+  // Usa la hora actual del cliente — se re-evalúa cada 30s vía tick
   const isLocked = useCallback((match: Match) => {
-    return new Date(match.match_date) <= new Date(now)
-  }, [now])
+    return new Date(match.match_date) <= new Date()
+  }, [])
 
   // Limpia timers al desmontar
   useEffect(() => {
     return () => { Object.values(debounceTimers.current).forEach(clearTimeout) }
+  }, [])
+
+  // Re-evalúa el lock de partidos cada 30s (por si el usuario deja la página abierta)
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 30_000)
+    return () => clearInterval(interval)
   }, [])
 
   // Guarda con valores explícitos (evita stale closure en auto-save)

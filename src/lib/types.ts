@@ -24,10 +24,13 @@ export interface Participant {
   name: string
   phone: string
   email: string
+  apodo: string | null
+  instagram_user: string | null
   instagram_confirmed: boolean
   total_chimichurros: number
   streak: number
   max_streak: number
+  device_id: string | null
   created_at: string
 }
 

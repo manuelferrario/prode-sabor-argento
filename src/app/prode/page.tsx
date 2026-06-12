@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ProdeClient from './prode-client'
 
+export const revalidate = 60
+
 export default async function ProdePage() {
   const supabase = await createClient()
 
@@ -18,7 +20,6 @@ export default async function ProdePage() {
   if (!participant) redirect('/registro')
 
   // Traer partidos disponibles (featured en grupo + todos los de eliminatoria)
-  const now = new Date().toISOString()
   const { data: matches } = await supabase
     .from('matches')
     .select('*')
@@ -43,7 +44,6 @@ export default async function ProdePage() {
       matches={matches ?? []}
       predictions={predictions ?? []}
       bonusPrediction={bonusPrediction ?? null}
-      now={now}
     />
   )
 }

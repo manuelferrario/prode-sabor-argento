@@ -190,8 +190,13 @@ export default function RegistroPage() {
     })
 
     if (loginError) {
-      setError('Registrado. Podés ingresar desde el login.')
-      router.push('/login')
+      if (loginError.message?.toLowerCase().includes('email not confirmed')) {
+        setError('Te enviamos un email de confirmación. Confirmá tu cuenta y después ingresá desde el login.')
+      } else {
+        setError('Registrado. Podés ingresar desde el login.')
+        router.push('/login')
+      }
+      setLoading(false)
       return
     }
 
