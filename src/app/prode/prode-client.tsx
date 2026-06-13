@@ -66,7 +66,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
 
   // Usa la hora actual del cliente — se re-evalúa cada 30s vía tick
   const isLocked = useCallback((match: Match) => {
-    return new Date(match.match_date) <= new Date()
+    return new Date(match.match_date).getTime() - 30 * 60 * 1000 <= new Date().getTime()
   }, [])
 
   // Limpia timers al desmontar
