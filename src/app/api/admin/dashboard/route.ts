@@ -22,15 +22,38 @@ export async function GET(request: Request) {
       .from('participants')
       .select('id, name, email, phone, apodo, instagram_user, instagram_confirmed, total_chimichurros, streak, created_at, device_id', { count: 'exact' })
       .order('total_chimichurros', { ascending: false }),
-    supabase.from('predictions').select('participant_id, match_id'),
+    supabase.from('predictions').select('participant_id, match_id, chimichurros_earned'),
     supabase.from('matches').select('*').order('match_date', { ascending: true }),
     supabase.from('bonus_predictions').select('participant_id, tournament_winner, top_scorer'),
   ])
 
-  // Predicciones por participante
+  const matchesAll = matches ?? []
+  const matchesFinished = matchesAll.filter(m => m.status === 'finished')
+  const matchesPending  = matchesAll.filter(m => m.status === 'upcoming')
+  const matchesLive     = matchesAll.filter(m => m.status === 'live')
+
+  // Partidos que el usuario puede predecir (misma lógica que /prode)
+  const predictableMatchIds = new Set(
+    matchesAll.filter(m => m.featured_team || m.round !== 'group').map(m => m.id)
+  )
+  const finishedMatchIds = new Set(matchesFinished.map(m => m.id))
+
+  // Predicciones por participante — solo sobre partidos predicibles
   const predCountMap: Record<string, number> = {}
+  // Stats por partido terminado: cuántos acertaron exacto, ganador, o erraron
+  const matchStatsMap: Record<string, { exact: number; winner: number; missed: number; total: number }> = {}
+
   for (const p of predictions ?? []) {
-    predCountMap[p.participant_id] = (predCountMap[p.participant_id] ?? 0) + 1
+    if (predictableMatchIds.has(p.match_id)) {
+      predCountMap[p.participant_id] = (predCountMap[p.participant_id] ?? 0) + 1
+    }
+    if (finishedMatchIds.has(p.match_id)) {
+      if (!matchStatsMap[p.match_id]) matchStatsMap[p.match_id] = { exact: 0, winner: 0, missed: 0, total: 0 }
+      matchStatsMap[p.match_id].total++
+      if (p.chimichurros_earned === 3) matchStatsMap[p.match_id].exact++
+      else if (p.chimichurros_earned === 1) matchStatsMap[p.match_id].winner++
+      else matchStatsMap[p.match_id].missed++
+    }
   }
 
   // Bonus por participante
@@ -39,16 +62,11 @@ export async function GET(request: Request) {
     bonusMap[b.participant_id] = { winner: b.tournament_winner, scorer: b.top_scorer }
   }
 
-  const matchesAll = matches ?? []
-  const matchesFinished = matchesAll.filter(m => m.status === 'finished')
-  const matchesPending  = matchesAll.filter(m => m.status === 'upcoming')
-  const matchesLive     = matchesAll.filter(m => m.status === 'live')
-
   const avgChimichurros = (participants?.length ?? 0) > 0
     ? Math.round((participants!.reduce((s, p) => s + (p.total_chimichurros ?? 0), 0)) / participants!.length)
     : 0
 
-  // Top goleador bonus más elegido
+  // Top campeón más elegido
   const winnerVotes: Record<string, number> = {}
   for (const b of bonusPredictions ?? []) {
     if (b.tournament_winner) winnerVotes[b.tournament_winner] = (winnerVotes[b.tournament_winner] ?? 0) + 1
@@ -61,27 +79,28 @@ export async function GET(request: Request) {
     bonus: bonusMap[p.id] ?? null,
   }))
 
-  // Participantes sin ninguna predicción
   const noPredictions = participantsWithStats.filter(p => p.prediction_count === 0).length
-
-  // IG pendientes de verificación
   const igPending = participantsWithStats.filter(p => p.instagram_confirmed === false).length
 
   return NextResponse.json({
     stats: {
-      total_participants:  totalParticipants ?? 0,
-      total_predictions:   predictions?.length ?? 0,
-      matches_finished:    matchesFinished.length,
-      matches_pending:     matchesPending.length,
-      matches_live:        matchesLive.length,
-      matches_total:       matchesAll.length,
-      avg_chimichurros:    avgChimichurros,
-      no_predictions:      noPredictions,
-      ig_pending:          igPending,
-      top_winner_pick:     topWinnerPick,
+      total_participants:       totalParticipants ?? 0,
+      total_predictions:        predictions?.length ?? 0,
+      matches_finished:         matchesFinished.length,
+      matches_pending:          matchesPending.length,
+      matches_live:             matchesLive.length,
+      matches_total:            matchesAll.length,
+      predictable_matches:      predictableMatchIds.size,
+      avg_chimichurros:         avgChimichurros,
+      no_predictions:           noPredictions,
+      ig_pending:               igPending,
+      top_winner_pick:          topWinnerPick,
     },
     participants: participantsWithStats,
-    recent_results: matchesFinished.slice(-8).reverse(),
+    recent_results: matchesFinished.slice(-8).reverse().map(m => ({
+      ...m,
+      stats: matchStatsMap[m.id] ?? { exact: 0, winner: 0, missed: 0, total: 0 },
+    })),
     upcoming_matches: matchesPending.slice(0, 8),
     live_matches: matchesLive,
   })
