@@ -50,6 +50,7 @@ interface DashboardData {
   participants: ParticipantAdmin[]
   recent_results: MatchAdmin[]
   upcoming_matches: MatchAdmin[]
+  live_matches: MatchAdmin[]
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -197,7 +198,7 @@ export default function AdminDashboard() {
 
   if (!data) return null
 
-  const { stats, participants, recent_results, upcoming_matches } = data
+  const { stats, participants, recent_results, upcoming_matches, live_matches } = data
 
   // Filtros de participantes
   const filtered = participants.filter(p => {
@@ -285,6 +286,43 @@ export default function AdminDashboard() {
             </p>
           )}
         </section>
+
+        {/* ── EN VIVO ── */}
+        {live_matches.length > 0 && (
+          <section>
+            <SectionTitle>
+              <span style={{ color: '#CE1126' }}>● EN VIVO</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', marginLeft: '8px' }}>
+                {live_matches.length} partido{live_matches.length > 1 ? 's' : ''}
+              </span>
+            </SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {live_matches.map(m => (
+                <div key={m.id} style={{
+                  ...S.card,
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  borderLeft: '3px solid #CE1126',
+                  background: 'rgba(206,17,38,0.06)',
+                }}>
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: '#CE1126', animation: 'pulse 1.5s infinite', minWidth: '48px' }}>
+                    ● LIVE
+                  </span>
+                  <span style={{ flex: 1, fontSize: '14px', fontWeight: 700, textAlign: 'right' }}>{m.team_home}</span>
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '13px', color: '#F6B40E', minWidth: '44px', textAlign: 'center' }}>
+                    {m.home_score ?? '?'} - {m.away_score ?? '?'}
+                  </span>
+                  <span style={{ flex: 1, fontSize: '14px', fontWeight: 700 }}>{m.team_away}</span>
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.3)' }}>
+                    {m.group_name ? `GRP ${m.group_name}` : RoundLabel(m.round)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.2)', marginTop: '8px', letterSpacing: '1px' }}>
+              SINCRONIZÁ AL FINAL DEL PARTIDO PARA ACTUALIZAR CHIMICHURROS
+            </p>
+          </section>
+        )}
 
         {/* ── FIXTURE ── */}
         <section>

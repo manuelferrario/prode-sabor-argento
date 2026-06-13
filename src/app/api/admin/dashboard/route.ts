@@ -83,5 +83,6 @@ export async function GET(request: Request) {
     participants: participantsWithStats,
     recent_results: matchesFinished.slice(-8).reverse(),
     upcoming_matches: matchesPending.slice(0, 8),
+    live_matches: matchesLive,
   })
 }
