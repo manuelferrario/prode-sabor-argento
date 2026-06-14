@@ -21,8 +21,9 @@ export async function GET(request: Request) {
     supabase
       .from('participants')
       .select('id, name, email, phone, apodo, instagram_user, instagram_confirmed, total_chimichurros, streak, created_at, device_id', { count: 'exact' })
-      .order('total_chimichurros', { ascending: false }),
-    supabase.from('predictions').select('participant_id, match_id, chimichurros_earned'),
+      .order('total_chimichurros', { ascending: false })
+      .range(0, 9999),
+    supabase.from('predictions').select('participant_id, match_id, chimichurros_earned').range(0, 9999),
     supabase.from('matches').select('*').order('match_date', { ascending: true }),
     supabase.from('bonus_predictions').select('participant_id, tournament_winner, top_scorer'),
   ])
