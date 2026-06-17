@@ -280,7 +280,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
         <div className="mb-6 p-4" style={{ background: 'var(--surface)', border: `1.5px solid ${isBonusLocked ? 'rgba(255,255,255,0.08)' : 'rgba(246,180,14,0.3)'}`, borderLeft: `3px solid ${isBonusLocked ? 'rgba(255,255,255,0.15)' : 'var(--dorado)'}`, opacity: isBonusLocked ? 0.7 : 1 }}>
           <div className="flex items-center gap-2 mb-4">
             <span className="font-brand text-white" style={{ fontSize: '22px', fontWeight: 900 }}>BONUS</span>
-            <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)', background: 'rgba(246,180,14,0.1)', padding: '2px 6px', border: '1px solid rgba(246,180,14,0.3)' }}>
+            <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)' }}>
               +10 + +5 🫙
             </span>
             {isBonusLocked && <span className="text-white/25 text-xs">🔒</span>}
