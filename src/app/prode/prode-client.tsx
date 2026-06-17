@@ -69,6 +69,15 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
     return new Date(match.match_date).getTime() - 30 * 60 * 1000 <= new Date().getTime()
   }, [])
 
+  // Bonus bloqueado 30min antes del primer partido del torneo
+  const isBonusLocked = (() => {
+    if (matches.length === 0) return false
+    const firstMatch = matches.reduce((a, b) =>
+      new Date(a.match_date) < new Date(b.match_date) ? a : b
+    )
+    return new Date(firstMatch.match_date).getTime() - 30 * 60 * 1000 <= new Date().getTime()
+  })()
+
   // Limpia timers al desmontar
   useEffect(() => {
     return () => { Object.values(debounceTimers.current).forEach(clearTimeout) }
@@ -268,13 +277,20 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
         </div>
 
         {/* Predicciones bonus */}
-        <div className="mb-6 p-4" style={{ background: 'var(--surface)', border: '1.5px solid rgba(246,180,14,0.3)', borderLeft: '3px solid var(--dorado)' }}>
+        <div className="mb-6 p-4" style={{ background: 'var(--surface)', border: `1.5px solid ${isBonusLocked ? 'rgba(255,255,255,0.08)' : 'rgba(246,180,14,0.3)'}`, borderLeft: `3px solid ${isBonusLocked ? 'rgba(255,255,255,0.15)' : 'var(--dorado)'}`, opacity: isBonusLocked ? 0.7 : 1 }}>
           <div className="flex items-center gap-2 mb-4">
             <span className="font-brand text-white" style={{ fontSize: '22px', fontWeight: 900 }}>BONUS</span>
             <span className="font-pixel" style={{ fontSize: '8px', color: 'var(--dorado)', background: 'rgba(246,180,14,0.1)', padding: '2px 6px', border: '1px solid rgba(246,180,14,0.3)' }}>
               +10 + +5 🫙
             </span>
+            {isBonusLocked && <span className="text-white/25 text-xs">🔒</span>}
           </div>
+
+          {isBonusLocked && (
+            <p className="font-pixel text-white/30 mb-4" style={{ fontSize: '7px', letterSpacing: '1px' }}>
+              PREDICCIONES BONUS CERRADAS
+            </p>
+          )}
 
           {/* Campeon del mundo */}
           <div className="mb-4">
@@ -283,6 +299,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             </label>
             <select
               value={bonus.winner}
+              disabled={isBonusLocked}
               onChange={e => setBonus(b => ({ ...b, winner: e.target.value }))}
               style={{
                 background: 'var(--surface-2)',
@@ -294,6 +311,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                 outline: 'none',
                 fontSize: '14px',
                 fontFamily: 'var(--font-body)',
+                cursor: isBonusLocked ? 'not-allowed' : 'pointer',
               }}
             >
               <option value="">— Elegir pais —</option>
@@ -313,6 +331,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             <p className="text-white/25 text-xs mb-1.5">¿Quien va a ser el goleador de Argentina?</p>
             <select
               value={bonus.scorer}
+              disabled={isBonusLocked}
               onChange={e => setBonus(b => ({ ...b, scorer: e.target.value }))}
               style={{
                 background: 'var(--surface-2)',
@@ -324,6 +343,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                 outline: 'none',
                 fontSize: '14px',
                 fontFamily: 'var(--font-body)',
+                cursor: isBonusLocked ? 'not-allowed' : 'pointer',
               }}
             >
               <option value="">— Elegir jugador —</option>
@@ -352,7 +372,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             </select>
           </div>
 
-          <button onClick={saveBonus} disabled={saving.bonus}
+          <button onClick={saveBonus} disabled={saving.bonus || isBonusLocked}
             className="w-full py-2.5 font-brand transition-all active:scale-95 disabled:opacity-40"
             style={{ background: saved.bonus ? '#009B3A' : 'rgba(246,180,14,0.15)',
               color: saved.bonus ? 'white' : 'var(--dorado)', fontSize: '18px', fontWeight: 900,
