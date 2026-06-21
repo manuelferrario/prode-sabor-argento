@@ -108,6 +108,9 @@ export default function AdminDashboard() {
   const [syncResult, setSyncResult] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
+  const [editScores, setEditScores] = useState({ home: '', away: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
 
   useEffect(() => {
     setLastSync(localStorage.getItem('admin_last_sync'))
@@ -151,6 +154,26 @@ export default function AdminDashboard() {
     a.href = `/api/admin/export-csv?password=${encodeURIComponent(password)}`
     a.download = `participantes-${new Date().toISOString().split('T')[0]}.csv`
     a.click()
+  }
+
+  function startEdit(m: MatchAdmin) {
+    setEditingMatchId(m.id)
+    setEditScores({ home: String(m.home_score ?? ''), away: String(m.away_score ?? '') })
+  }
+
+  async function saveEdit(matchId: string) {
+    const homeScore = parseInt(editScores.home)
+    const awayScore = parseInt(editScores.away)
+    if (isNaN(homeScore) || isNaN(awayScore)) return
+    setSavingEdit(true)
+    await fetch(`/api/admin/edit-result?password=${encodeURIComponent(password)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ matchId, homeScore, awayScore }),
+    })
+    setSavingEdit(false)
+    setEditingMatchId(null)
+    fetchData(password)
   }
 
   async function toggleIG(participantId: string, currentValue: boolean) {
@@ -375,10 +398,56 @@ export default function AdminDashboard() {
                           {RoundLabel(m.round)}
                         </span>
                         <span style={{ flex: 1, fontSize: '13px', fontWeight: 600, textAlign: 'right' }}>{m.team_home}</span>
-                        <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '11px', color: '#74ACDF', minWidth: '36px', textAlign: 'center' }}>
-                          {m.home_score}-{m.away_score}
-                        </span>
+
+                        {editingMatchId === m.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <input
+                              type="number"
+                              value={editScores.home}
+                              onChange={e => setEditScores(s => ({ ...s, home: e.target.value }))}
+                              style={{ width: '32px', padding: '2px 4px', background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontSize: '12px', textAlign: 'center' }}
+                            />
+                            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px' }}>-</span>
+                            <input
+                              type="number"
+                              value={editScores.away}
+                              onChange={e => setEditScores(s => ({ ...s, away: e.target.value }))}
+                              style={{ width: '32px', padding: '2px 4px', background: '#1e1e1e', border: '1px solid rgba(255,255,255,0.2)', color: 'white', fontSize: '12px', textAlign: 'center' }}
+                            />
+                          </div>
+                        ) : (
+                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '11px', color: '#74ACDF', minWidth: '36px', textAlign: 'center' }}>
+                            {m.home_score}-{m.away_score}
+                          </span>
+                        )}
+
                         <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{m.team_away}</span>
+
+                        {editingMatchId === m.id ? (
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              onClick={() => saveEdit(m.id)}
+                              disabled={savingEdit}
+                              style={{ background: '#009B3A', color: 'white', border: 'none', padding: '3px 7px', fontSize: '10px', cursor: 'pointer', opacity: savingEdit ? 0.5 : 1 }}
+                            >
+                              {savingEdit ? '...' : '✓'}
+                            </button>
+                            <button
+                              onClick={() => setEditingMatchId(null)}
+                              style={{ background: 'transparent', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.15)', padding: '3px 7px', fontSize: '10px', cursor: 'pointer' }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => startEdit(m)}
+                            title="Editar resultado a mano"
+                            style={{ background: 'transparent', color: 'rgba(255,255,255,0.25)', border: 'none', cursor: 'pointer', fontSize: '12px', padding: '2px' }}
+                          >
+                            ✏️
+                          </button>
+                        )}
                       </div>
                       {m.stats && m.stats.total > 0 && (
                         <div style={{ display: 'flex', gap: '8px', marginTop: '5px', paddingTop: '5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
