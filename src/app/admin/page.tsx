@@ -180,6 +180,13 @@ export default function AdminDashboard() {
     a.click()
   }
 
+  async function handleDownloadPredictionsCSV() {
+    const a = document.createElement('a')
+    a.href = `/api/admin/export-predictions?password=${encodeURIComponent(password)}`
+    a.download = `verificacion-prode-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
   function startEdit(m: MatchAdmin) {
     setEditingMatchId(m.id)
     setEditScores({ home: String(m.home_score ?? ''), away: String(m.away_score ?? '') })
@@ -346,6 +353,13 @@ export default function AdminDashboard() {
               border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', letterSpacing: '1px',
             }}>
               ⬇ EXPORTAR CSV
+            </button>
+            <button onClick={handleDownloadPredictionsCSV} style={{
+              padding: '10px 20px', background: 'rgba(255,255,255,0.05)',
+              color: 'rgba(255,255,255,0.8)', fontFamily: 'var(--font-brand)', fontSize: '18px', fontWeight: 900,
+              border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer', letterSpacing: '1px',
+            }}>
+              ⬇ EXPORTAR VERIFICACIÓN
             </button>
           </div>
           {syncResult && (
