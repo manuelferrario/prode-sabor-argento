@@ -123,12 +123,10 @@ export default function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
-  const [igFilter, setIgFilter] = useState<'all' | 'pending' | 'verified'>('all')
   const [predsFilter, setPredsFilter] = useState<'all' | 'none'>('all')
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<string | null>(null)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
   const [editScores, setEditScores] = useState({ home: '', away: '' })
   const [savingEdit, setSavingEdit] = useState(false)
@@ -207,22 +205,6 @@ export default function AdminDashboard() {
     fetchData(password)
   }
 
-  async function toggleIG(participantId: string, currentValue: boolean) {
-    setTogglingId(participantId)
-    await fetch(`/api/admin/verify-instagram?password=${encodeURIComponent(password)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ participantId, verified: !currentValue }),
-    })
-    setData(d => d ? {
-      ...d,
-      participants: d.participants.map(p =>
-        p.id === participantId ? { ...p, instagram_confirmed: !currentValue } : p
-      ),
-    } : d)
-    setTogglingId(null)
-  }
-
   async function openDetail(participantId: string) {
     setDetailParticipantId(participantId)
     setDetailLoading(true)
@@ -276,15 +258,17 @@ export default function AdminDashboard() {
 
   const { stats, participants, recent_results, upcoming_matches, live_matches } = data
 
+  // Posición real en el ranking (participants ya viene ordenado por total_chimichurros desc)
+  const rankMap = new Map(participants.map((p, i) => [p.id, i + 1]))
+
   // Filtros de participantes
   const filtered = participants.filter(p => {
     const matchSearch = search === '' ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
       p.email.toLowerCase().includes(search.toLowerCase()) ||
       (p.instagram_user ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchIG = igFilter === 'all' ? true : igFilter === 'pending' ? !p.instagram_confirmed : p.instagram_confirmed
     const matchPreds = predsFilter === 'all' ? true : p.prediction_count === 0
-    return matchSearch && matchIG && matchPreds
+    return matchSearch && matchPreds
   })
 
   const totalAvailableMatches = stats.predictable_matches
@@ -580,11 +564,6 @@ export default function AdminDashboard() {
                 border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '13px', outline: 'none',
               }}
             />
-            <FilterButton active={igFilter === 'all'} onClick={() => setIgFilter('all')}>Todos IG</FilterButton>
-            <FilterButton active={igFilter === 'pending'} onClick={() => setIgFilter('pending')} warn={stats.ig_pending > 0}>
-              Sin verificar ({stats.ig_pending})
-            </FilterButton>
-            <FilterButton active={igFilter === 'verified'} onClick={() => setIgFilter('verified')}>Verificados</FilterButton>
             <FilterButton active={predsFilter === 'none'} onClick={() => setPredsFilter(predsFilter === 'none' ? 'all' : 'none')} warn={stats.no_predictions > 0}>
               Sin predicciones ({stats.no_predictions})
             </FilterButton>
@@ -595,7 +574,7 @@ export default function AdminDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  {['#', 'NOMBRE', 'EMAIL', 'TELÉFONO', '@INSTAGRAM', 'IG ✓', 'CHIMIS', 'PREDS', 'BONUS', 'REGISTRO', ''].map(h => (
+                  {['#', 'NOMBRE', 'EMAIL', 'TELÉFONO', 'CHIMIS', 'PREDS', 'REGISTRO', ''].map(h => (
                     <th key={h} style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.3)', padding: '8px 10px', textAlign: 'left', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -605,7 +584,7 @@ export default function AdminDashboard() {
                   <tr key={p.id}
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
                     <td style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.3)', fontFamily: 'var(--font-pixel)', fontSize: '8px' }}>
-                      {i + 1}
+                      #{rankMap.get(p.id)}
                     </td>
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
                       <span style={{ fontWeight: 600 }}>{p.name}</span>
@@ -615,29 +594,6 @@ export default function AdminDashboard() {
                       <a href={`mailto:${p.email}`} style={{ color: 'inherit', textDecoration: 'none' }}>{p.email}</a>
                     </td>
                     <td style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>{p.phone}</td>
-                    <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
-                      {p.instagram_user
-                        ? <a href={`https://instagram.com/${p.instagram_user}`} target="_blank" rel="noopener noreferrer" style={{ color: '#74ACDF', textDecoration: 'none' }}>@{p.instagram_user}</a>
-                        : <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
-                      }
-                    </td>
-                    <td style={{ padding: '8px 10px' }}>
-                      <button
-                        onClick={() => toggleIG(p.id, p.instagram_confirmed)}
-                        disabled={togglingId === p.id}
-                        title={p.instagram_confirmed ? 'Click para marcar como no verificado' : 'Click para verificar'}
-                        style={{
-                          padding: '3px 8px', fontSize: '11px', fontWeight: 700,
-                          background: p.instagram_confirmed ? 'rgba(0,155,58,0.2)' : 'rgba(206,17,38,0.15)',
-                          color: p.instagram_confirmed ? '#009B3A' : '#CE1126',
-                          border: `1px solid ${p.instagram_confirmed ? '#009B3A' : '#CE1126'}`,
-                          cursor: 'pointer', transition: 'opacity 0.15s',
-                          opacity: togglingId === p.id ? 0.4 : 1,
-                        }}
-                      >
-                        {p.instagram_confirmed ? '✓ OK' : '✗ NO'}
-                      </button>
-                    </td>
                     <td style={{ padding: '8px 10px' }}>
                       <span style={{
                         fontFamily: 'var(--font-pixel)', fontSize: '10px', color: '#F6B40E',
@@ -651,12 +607,6 @@ export default function AdminDashboard() {
                         {p.prediction_count}
                       </span>
                       <span style={{ color: 'rgba(255,255,255,0.2)' }}>/{totalAvailableMatches}</span>
-                    </td>
-                    <td style={{ padding: '8px 10px', fontSize: '11px' }}>
-                      {p.bonus?.winner || p.bonus?.scorer
-                        ? <span style={{ color: '#009B3A' }}>✓</span>
-                        : <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>
-                      }
                     </td>
                     <td style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontSize: '11px' }}>
                       {new Date(p.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -677,7 +627,7 @@ export default function AdminDashboard() {
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={11} style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-pixel)', fontSize: '9px' }}>
+                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-pixel)', fontSize: '9px' }}>
                       NO HAY RESULTADOS
                     </td>
                   </tr>

@@ -39,11 +39,26 @@ export async function GET(request: Request) {
       FINAL: 'final',
     }
 
+    // Partidos corregidos a mano — el sync no debe pisar su resultado
+    const { data: overriddenRows } = await supabase
+      .from('matches')
+      .select('api_match_id')
+      .eq('manual_override', true)
+    const overriddenIds = new Set((overriddenRows ?? []).map(r => r.api_match_id))
+
     let updated = 0
     let scoresUpdated = 0
+    let skipped = 0
 
     for (const m of matches) {
       const apiId = m.id
+
+      // No pisar el resultado de un partido que el admin corrigió a mano
+      if (overriddenIds.has(apiId)) {
+        skipped++
+        continue
+      }
+
       const homeTeam = m.homeTeam?.name || 'TBD'
       const awayTeam = m.awayTeam?.name || 'TBD'
       const status = m.status === 'FINISHED' ? 'finished'
@@ -98,6 +113,7 @@ export async function GET(request: Request) {
       ok: true,
       matches_updated: updated,
       scores_updated: scoresUpdated,
+      manual_overrides_skipped: skipped,
       timestamp: new Date().toISOString(),
     })
   } catch (err) {

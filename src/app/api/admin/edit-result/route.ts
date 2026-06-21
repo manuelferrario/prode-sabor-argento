@@ -29,6 +29,9 @@ export async function POST(request: Request) {
     home_score: homeScore,
     away_score: awayScore,
     status: 'finished',
+    // Protege esta corrección de ser pisada por el próximo sync automático
+    // (cron diario o SYNC RESULTADOS) si la API externa sigue desactualizada
+    manual_override: true,
   }
 
   if (match) {
