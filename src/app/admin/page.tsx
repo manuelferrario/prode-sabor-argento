@@ -55,6 +55,27 @@ interface DashboardData {
   live_matches: MatchAdmin[]
 }
 
+interface PredictionDetail {
+  match_id: string
+  team_home: string
+  team_away: string
+  home_score: number | null
+  away_score: number | null
+  status: string
+  round: string
+  match_date: string
+  predicted_home: number
+  predicted_away: number
+  chimichurros_earned: number
+}
+
+interface ParticipantDetailData {
+  participant: { name: string; total_chimichurros: number; streak: number; max_streak: number }
+  bonus: { tournament_winner: string | null; top_scorer: string | null } | null
+  predictions: PredictionDetail[]
+  sum_earned: number
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const S = {
@@ -111,6 +132,9 @@ export default function AdminDashboard() {
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null)
   const [editScores, setEditScores] = useState({ home: '', away: '' })
   const [savingEdit, setSavingEdit] = useState(false)
+  const [detailParticipantId, setDetailParticipantId] = useState<string | null>(null)
+  const [detailData, setDetailData] = useState<ParticipantDetailData | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
 
   useEffect(() => {
     setLastSync(localStorage.getItem('admin_last_sync'))
@@ -190,6 +214,16 @@ export default function AdminDashboard() {
       ),
     } : d)
     setTogglingId(null)
+  }
+
+  async function openDetail(participantId: string) {
+    setDetailParticipantId(participantId)
+    setDetailLoading(true)
+    setDetailData(null)
+    const res = await fetch(`/api/admin/participant-detail?password=${encodeURIComponent(password)}&participantId=${participantId}`)
+    const json = await res.json()
+    setDetailData(json)
+    setDetailLoading(false)
   }
 
   // ── Auth gate ──
@@ -547,7 +581,7 @@ export default function AdminDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                  {['#', 'NOMBRE', 'EMAIL', 'TELÉFONO', '@INSTAGRAM', 'IG ✓', 'CHIMIS', 'PREDS', 'BONUS', 'REGISTRO'].map(h => (
+                  {['#', 'NOMBRE', 'EMAIL', 'TELÉFONO', '@INSTAGRAM', 'IG ✓', 'CHIMIS', 'PREDS', 'BONUS', 'REGISTRO', ''].map(h => (
                     <th key={h} style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.3)', padding: '8px 10px', textAlign: 'left', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -613,11 +647,23 @@ export default function AdminDashboard() {
                     <td style={{ padding: '8px 10px', color: 'rgba(255,255,255,0.35)', whiteSpace: 'nowrap', fontSize: '11px' }}>
                       {new Date(p.created_at).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                     </td>
+                    <td style={{ padding: '8px 10px' }}>
+                      <button
+                        onClick={() => openDetail(p.id)}
+                        style={{
+                          padding: '3px 8px', fontSize: '11px', fontWeight: 700,
+                          background: 'rgba(116,172,223,0.1)', color: '#74ACDF',
+                          border: '1px solid rgba(116,172,223,0.3)', cursor: 'pointer', whiteSpace: 'nowrap',
+                        }}
+                      >
+                        VER →
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-pixel)', fontSize: '9px' }}>
+                    <td colSpan={11} style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-pixel)', fontSize: '9px' }}>
                       NO HAY RESULTADOS
                     </td>
                   </tr>
@@ -628,6 +674,101 @@ export default function AdminDashboard() {
         </section>
 
       </div>
+
+      {/* Modal de detalle de participante */}
+      {detailParticipantId && (
+        <div
+          onClick={() => setDetailParticipantId(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#141414', border: '1px solid rgba(255,255,255,0.12)',
+              maxWidth: '640px', width: '100%', maxHeight: '85vh', overflowY: 'auto', padding: '20px',
+            }}
+          >
+            {detailLoading || !detailData ? (
+              <p style={{ color: 'rgba(255,255,255,0.4)', textAlign: 'center', padding: '40px' }}>Cargando...</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div>
+                    <p style={{ fontFamily: 'var(--font-brand)', fontSize: '24px', fontWeight: 900, margin: 0 }}>
+                      {detailData.participant.name}
+                    </p>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', margin: '4px 0 0' }}>
+                      Racha actual: {detailData.participant.streak} · Racha máxima: {detailData.participant.max_streak}
+                    </p>
+                  </div>
+                  <button onClick={() => setDetailParticipantId(null)}
+                    style={{ background: 'transparent', color: 'rgba(255,255,255,0.4)', border: 'none', fontSize: '20px', cursor: 'pointer' }}>
+                    ✕
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ ...S.card, flex: 1, padding: '10px' }}>
+                    <span style={S.label}>TOTAL GUARDADO</span>
+                    <p style={{ fontFamily: 'var(--font-brand)', fontSize: '22px', fontWeight: 900, color: '#F6B40E', margin: 0 }}>
+                      🫙 {detailData.participant.total_chimichurros}
+                    </p>
+                  </div>
+                  <div style={{ ...S.card, flex: 1, padding: '10px' }}>
+                    <span style={S.label}>SUMA DE PREDICCIONES</span>
+                    <p style={{
+                      fontFamily: 'var(--font-brand)', fontSize: '22px', fontWeight: 900, margin: 0,
+                      color: detailData.sum_earned === detailData.participant.total_chimichurros ? '#009B3A' : '#CE1126',
+                    }}>
+                      🫙 {detailData.sum_earned}
+                    </p>
+                  </div>
+                </div>
+
+                {detailData.bonus && (detailData.bonus.tournament_winner || detailData.bonus.top_scorer) && (
+                  <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '12px' }}>
+                    Bonus: {detailData.bonus.tournament_winner ?? '—'} campeón · {detailData.bonus.top_scorer ?? '—'} goleador
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {detailData.predictions.map(pred => {
+                    const isFinished = pred.status === 'finished'
+                    const correct = isFinished && pred.predicted_home === pred.home_score && pred.predicted_away === pred.away_score
+                    return (
+                      <div key={pred.match_id} style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px',
+                        background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.06)', fontSize: '12px',
+                      }}>
+                        <span style={{ flex: 1, textAlign: 'right', fontWeight: 600 }}>{pred.team_home}</span>
+                        <span style={{
+                          fontFamily: 'var(--font-pixel)', fontSize: '10px', minWidth: '50px', textAlign: 'center',
+                          color: correct ? '#009B3A' : 'rgba(255,255,255,0.5)',
+                        }}>
+                          {pred.predicted_home}-{pred.predicted_away}
+                        </span>
+                        <span style={{ flex: 1, fontWeight: 600 }}>{pred.team_away}</span>
+                        <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '11px', minWidth: '50px', textAlign: 'center' }}>
+                          {isFinished ? `${pred.home_score}-${pred.away_score}` : '—'}
+                        </span>
+                        <span style={{
+                          fontFamily: 'var(--font-pixel)', fontSize: '10px', minWidth: '24px', textAlign: 'center',
+                          color: !isFinished ? 'rgba(255,255,255,0.2)' : pred.chimichurros_earned > 0 ? '#F6B40E' : '#CE1126',
+                        }}>
+                          {isFinished ? pred.chimichurros_earned : '·'}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   )
 }
