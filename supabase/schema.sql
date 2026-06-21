@@ -159,10 +159,12 @@ begin
       match_record.went_to_penalties
     );
 
-    -- Racha: recorre TODOS los partidos terminados y recalcula el puntaje BASE
-    -- de cada uno al vuelo (predicción vs resultado real). Nunca confía en
+    -- Racha: recorre los partidos terminados HASTA la fecha de este partido
+    -- (no todo el historial completo) y recalcula el puntaje BASE de cada uno
+    -- al vuelo (predicción vs resultado real). Nunca confía en
     -- chimichurros_earned ya guardado — así el cálculo es siempre idempotente
-    -- y no se contamina con bonus de corridas anteriores.
+    -- y no se contamina con bonus de corridas anteriores ni con la racha
+    -- "final" del torneo aplicada a partidos pasados.
     new_streak := 0;
     for streak_row in (
       select
@@ -175,6 +177,7 @@ begin
         on p.match_id = m.id and p.participant_id = pred.participant_id
       where m.status = 'finished'
         and m.home_score is not null and m.away_score is not null
+        and m.match_date <= match_record.match_date
       order by m.match_date desc
     ) loop
       if streak_row.base > 0 then
