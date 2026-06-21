@@ -157,11 +157,7 @@ begin
       match_record.went_to_penalties
     );
 
-    update predictions
-    set chimichurros_earned = earned
-    where id = pred.id;
-
-    -- Actualizar streak y total del participante
+    -- Racha: solo suma si esta predicción ganó puntos (1 o 3). Si no, se rompe.
     select streak into new_streak from participants where id = pred.participant_id;
 
     if earned > 0 then
@@ -170,11 +166,15 @@ begin
       new_streak := 0;
     end if;
 
-    -- Bonus de racha: cada 5 aciertos consecutivos
+    -- Bonus de racha: cada 5 aciertos consecutivos (se guarda en la predicción)
     if new_streak > 0 and new_streak % 5 = 0 then
       earned := earned + 3;
       new_streak := 0; -- resetea para poder ganar de nuevo
     end if;
+
+    update predictions
+    set chimichurros_earned = earned
+    where id = pred.id;
 
     update participants
     set
@@ -185,6 +185,14 @@ begin
       max_streak = greatest(max_streak, new_streak)
     where id = pred.participant_id;
   end loop;
+
+  -- Romper la racha de quienes NO cargaron predicción para este partido
+  update participants
+  set streak = 0
+  where streak > 0
+    and id not in (
+      select participant_id from predictions where match_id = match_id_param
+    );
 end;
 $$ language plpgsql;
 
