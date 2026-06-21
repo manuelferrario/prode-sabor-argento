@@ -12,6 +12,7 @@ interface Stats {
   matches_pending: number
   matches_live: number
   matches_total: number
+  predictable_matches: number
   avg_chimichurros: number
   no_predictions: number
   ig_pending: number
@@ -43,6 +44,7 @@ interface MatchAdmin {
   home_score: number | null
   away_score: number | null
   status: string
+  stats?: { exact: number; winner: number; missed: number; total: number }
 }
 
 interface DashboardData {
@@ -50,6 +52,7 @@ interface DashboardData {
   participants: ParticipantAdmin[]
   recent_results: MatchAdmin[]
   upcoming_matches: MatchAdmin[]
+  live_matches: MatchAdmin[]
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -103,7 +106,12 @@ export default function AdminDashboard() {
   const [predsFilter, setPredsFilter] = useState<'all' | 'none'>('all')
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
+  const [lastSync, setLastSync] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setLastSync(localStorage.getItem('admin_last_sync'))
+  }, [])
 
   const fetchData = useCallback(async (pwd: string) => {
     setLoading(true)
@@ -126,6 +134,11 @@ export default function AdminDashboard() {
     setSyncResult(null)
     const res = await fetch(`/api/admin/sync?password=${encodeURIComponent(password)}`, { method: 'POST' })
     const json = await res.json()
+    if (json.ok) {
+      const ts = new Date().toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+      localStorage.setItem('admin_last_sync', ts)
+      setLastSync(ts)
+    }
     setSyncResult(json.ok
       ? `✓ ${json.scores_updated} resultados · ${json.matches_updated} partidos actualizados`
       : `Error: ${json.error}`)
@@ -197,7 +210,7 @@ export default function AdminDashboard() {
 
   if (!data) return null
 
-  const { stats, participants, recent_results, upcoming_matches } = data
+  const { stats, participants, recent_results, upcoming_matches, live_matches } = data
 
   // Filtros de participantes
   const filtered = participants.filter(p => {
@@ -210,7 +223,7 @@ export default function AdminDashboard() {
     return matchSearch && matchIG && matchPreds
   })
 
-  const totalAvailableMatches = stats.matches_finished + stats.matches_pending + stats.matches_live
+  const totalAvailableMatches = stats.predictable_matches
 
   // ── Dashboard ──
   return (
@@ -284,7 +297,49 @@ export default function AdminDashboard() {
               {syncResult}
             </p>
           )}
+          {lastSync && (
+            <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.2)', marginTop: '6px', letterSpacing: '1px' }}>
+              ÚLTIMO SYNC: {lastSync}
+            </p>
+          )}
         </section>
+
+        {/* ── EN VIVO ── */}
+        {live_matches.length > 0 && (
+          <section>
+            <SectionTitle>
+              <span style={{ color: '#CE1126' }}>● EN VIVO</span>
+              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '14px', marginLeft: '8px' }}>
+                {live_matches.length} partido{live_matches.length > 1 ? 's' : ''}
+              </span>
+            </SectionTitle>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {live_matches.map(m => (
+                <div key={m.id} style={{
+                  ...S.card,
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  borderLeft: '3px solid #CE1126',
+                  background: 'rgba(206,17,38,0.06)',
+                }}>
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: '#CE1126', animation: 'pulse 1.5s infinite', minWidth: '48px' }}>
+                    ● LIVE
+                  </span>
+                  <span style={{ flex: 1, fontSize: '14px', fontWeight: 700, textAlign: 'right' }}>{m.team_home}</span>
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '13px', color: '#F6B40E', minWidth: '44px', textAlign: 'center' }}>
+                    {m.home_score ?? '?'} - {m.away_score ?? '?'}
+                  </span>
+                  <span style={{ flex: 1, fontSize: '14px', fontWeight: 700 }}>{m.team_away}</span>
+                  <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.3)' }}>
+                    {m.group_name ? `GRP ${m.group_name}` : RoundLabel(m.round)}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.2)', marginTop: '8px', letterSpacing: '1px' }}>
+              SINCRONIZÁ AL FINAL DEL PARTIDO PARA ACTUALIZAR CHIMICHURROS
+            </p>
+          </section>
+        )}
 
         {/* ── FIXTURE ── */}
         <section>
@@ -314,15 +369,33 @@ export default function AdminDashboard() {
                 <p style={S.label}>ÚLTIMOS RESULTADOS</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {recent_results.map(m => (
-                    <div key={m.id} style={{ ...S.card, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.3)', minWidth: '48px' }}>
-                        {RoundLabel(m.round)}
-                      </span>
-                      <span style={{ flex: 1, fontSize: '13px', fontWeight: 600, textAlign: 'right' }}>{m.team_home}</span>
-                      <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '11px', color: '#74ACDF', minWidth: '36px', textAlign: 'center' }}>
-                        {m.home_score}-{m.away_score}
-                      </span>
-                      <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{m.team_away}</span>
+                    <div key={m.id} style={{ ...S.card, padding: '8px 12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.3)', minWidth: '48px' }}>
+                          {RoundLabel(m.round)}
+                        </span>
+                        <span style={{ flex: 1, fontSize: '13px', fontWeight: 600, textAlign: 'right' }}>{m.team_home}</span>
+                        <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '11px', color: '#74ACDF', minWidth: '36px', textAlign: 'center' }}>
+                          {m.home_score}-{m.away_score}
+                        </span>
+                        <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{m.team_away}</span>
+                      </div>
+                      {m.stats && m.stats.total > 0 && (
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '5px', paddingTop: '5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: '#F6B40E' }}>
+                            🎯 {m.stats.exact} exactos
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: '#74ACDF' }}>
+                            ✓ {m.stats.winner} ganador
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.25)' }}>
+                            ✗ {m.stats.missed} erraron
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '7px', color: 'rgba(255,255,255,0.15)', marginLeft: 'auto' }}>
+                            {m.stats.total} preds
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -347,6 +420,30 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* ── RANKING TOP 10 ── */}
+        <section>
+          <SectionTitle>RANKING TOP 10</SectionTitle>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {participants.slice(0, 10).map((p, i) => (
+              <div key={p.id} style={{
+                ...S.card, padding: '8px 14px',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                borderLeft: i === 0 ? '3px solid #F6B40E' : i < 3 ? '3px solid #74ACDF' : '3px solid rgba(255,255,255,0.06)',
+              }}>
+                <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '9px', color: i === 0 ? '#F6B40E' : i < 3 ? '#74ACDF' : 'rgba(255,255,255,0.3)', minWidth: '24px' }}>
+                  #{i + 1}
+                </span>
+                <span style={{ flex: 1, fontSize: '14px', fontWeight: 600 }}>
+                  {p.name}{p.apodo ? <span style={{ color: '#74ACDF', marginLeft: '6px', fontSize: '12px' }}>"{p.apodo}"</span> : null}
+                </span>
+                <span style={{ fontFamily: 'var(--font-pixel)', fontSize: '10px', color: '#F6B40E', background: 'rgba(246,180,14,0.1)', padding: '3px 8px', border: '1px solid rgba(246,180,14,0.2)' }}>
+                  🫙 {p.total_chimichurros}
+                </span>
+              </div>
+            ))}
           </div>
         </section>
 

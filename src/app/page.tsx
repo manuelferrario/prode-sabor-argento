@@ -95,7 +95,7 @@ function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
                       <img
                         src={src}
                         alt={label}
-                        style={{ width: '100%', height: '100px', objectFit: 'cover', display: 'block' }}
+                        style={{ width: '100%', height: '100px', objectFit: src.includes('remera') ? 'contain' : 'cover', display: 'block', background: src.includes('remera') ? 'rgba(255,255,255,0.04)' : 'none' }}
                         onError={(e) => {
                           // Mientras no haya fotos, muestra placeholder con emoji
                           const el = e.currentTarget.parentElement!
