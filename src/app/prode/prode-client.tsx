@@ -183,6 +183,18 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          {/* Racha actual — con tooltip del bonus */}
+          {participant.streak > 0 && (
+            <div
+              className="flex items-center gap-1 px-2 py-1.5 font-pixel"
+              title={`Racha de ${participant.streak}. Cada 5 aciertos seguidos sumás +3 chimichurros de bonus.`}
+              style={{ background: 'rgba(206,17,38,0.1)', border: '1px solid rgba(206,17,38,0.3)',
+                color: '#ff6b6b', fontSize: '10px' }}
+            >
+              <span>🔥</span>
+              <span>{participant.streak}</span>
+            </div>
+          )}
           {/* Chimichurros counter */}
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 font-pixel"
             style={{ background: 'rgba(246,180,14,0.12)', border: '1px solid rgba(246,180,14,0.3)',
@@ -216,6 +228,17 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
             HOLA, {participant.name.split(' ')[0].toUpperCase()}!
           </h1>
         </div>
+
+        {/* Racha activa — explica el bonus de +3 cada 5 aciertos */}
+        {participant.streak > 0 && (
+          <div className="mb-3 px-4 py-2.5 flex items-center gap-3"
+            style={{ background: 'rgba(206,17,38,0.08)', border: '1px solid rgba(206,17,38,0.22)', borderLeft: '3px solid #CE1126' }}>
+            <span className="text-base flex-shrink-0">🔥</span>
+            <p className="font-pixel text-white/60 flex-1" style={{ fontSize: '8px', lineHeight: 1.6, letterSpacing: '0.5px' }}>
+              RACHA DE <span style={{ color: '#ff6b6b', fontWeight: 700 }}>{participant.streak}</span> ACIERTOS · CADA 5 SEGUIDOS SUMÁS +3 🫙 DE BONUS
+            </p>
+          </div>
+        )}
 
         {/* Notificación: partidos pendientes */}
         {missingCount > 0 && (

@@ -337,7 +337,7 @@ export default function HomePage() {
           {[
             { icon: '📝', step: '01', title: 'REGISTRATE', desc: 'Nombre, teléfono y mail. Gratis.' },
             { icon: '⚽', step: '02', title: 'CARGA TU PRODE', desc: 'Predeci partidos de Argentina, Brasil, Espana y mas.' },
-            { icon: '🫙', step: '03', title: 'SUMA CHIMICHURROS', desc: 'Los chimichurros son tus puntos. Mientras mas acertás, mas sumás.' },
+            { icon: '🫙', step: '03', title: 'SUMA CHIMICHURROS', desc: 'Resultado exacto = 3. Ganador correcto = 1. ¿5 aciertos seguidos? +3 de bonus por racha.' },
             { icon: '🏆', step: '04', title: 'GANATE LOS PREMIOS', desc: 'Los del podio se llevan lo mejor de Sabor Argento.' },
           ].map(({ icon, step, title, desc }, i) => (
             <div key={step} className={`flex items-center gap-4 p-4 anim-reveal-${i+1}`}
