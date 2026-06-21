@@ -12,6 +12,28 @@ function calculateBase(
   return predicted === actual ? 1 : 0
 }
 
+// Supabase/PostgREST cappea cada respuesta a ~1000 filas sin importar el
+// .range() pedido. Para traer tablas grandes hay que paginar en loop.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAll<T>(
+  supabase: any,
+  table: string,
+  columns: string
+): Promise<T[]> {
+  const pageSize = 1000
+  let from = 0
+  const all: T[] = []
+  while (true) {
+    const { data, error } = await supabase.from(table).select(columns).range(from, from + pageSize - 1)
+    if (error) throw error
+    if (!data || data.length === 0) break
+    all.push(...(data as T[]))
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+  return all
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   if (searchParams.get('password') !== process.env.ADMIN_PASSWORD) {
@@ -23,21 +45,31 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const [
-    { data: participants, error: participantsError },
-    { data: predictions, error: predictionsError },
-    { data: matches, error: matchesError },
-  ] = await Promise.all([
-    supabase.from('participants').select('id, name, email, total_chimichurros, streak, max_streak').range(0, 9999),
-    supabase.from('predictions').select('participant_id, match_id, predicted_home, predicted_away, chimichurros_earned').range(0, 9999),
-    supabase.from('matches').select('id, team_home, team_away, home_score, away_score, status, round, match_date').range(0, 9999),
-  ])
+  interface ParticipantRow { id: string; name: string; email: string; total_chimichurros: number; streak: number; max_streak: number }
+  interface PredictionRow { participant_id: string; match_id: string; predicted_home: number; predicted_away: number; chimichurros_earned: number }
+  interface MatchRow { id: string; team_home: string; team_away: string; home_score: number | null; away_score: number | null; status: string; round: string; match_date: string }
+
+  let participants: ParticipantRow[] = []
+  let predictions: PredictionRow[] = []
+  let matches: MatchRow[] = []
+  let fetchError = ''
+
+  try {
+    ;[participants, predictions, matches] = await Promise.all([
+      fetchAll<ParticipantRow>(supabase, 'participants', 'id, name, email, total_chimichurros, streak, max_streak'),
+      fetchAll<PredictionRow>(supabase, 'predictions', 'participant_id, match_id, predicted_home, predicted_away, chimichurros_earned'),
+      fetchAll<MatchRow>(supabase, 'matches', 'id, team_home, team_away, home_score, away_score, status, round, match_date'),
+    ])
+  } catch (err) {
+    fetchError = err instanceof Error ? err.message : String(err)
+  }
 
   const debugLines = [
-    `DEBUG: participants=${participants?.length ?? 'null'} (error: ${participantsError?.message ?? 'ninguno'})`,
-    `DEBUG: predictions=${predictions?.length ?? 'null'} (error: ${predictionsError?.message ?? 'ninguno'})`,
-    `DEBUG: matches=${matches?.length ?? 'null'} (error: ${matchesError?.message ?? 'ninguno'})`,
-    `DEBUG: matches_finished=${(matches ?? []).filter(m => m.status === 'finished').length}`,
+    `DEBUG: participants=${participants.length}`,
+    `DEBUG: predictions=${predictions.length}`,
+    `DEBUG: matches=${matches.length}`,
+    `DEBUG: matches_finished=${matches.filter(m => m.status === 'finished').length}`,
+    `DEBUG: error=${fetchError || 'ninguno'}`,
   ]
 
   const matchMap = new Map((matches ?? []).map(m => [m.id, m]))

@@ -1,6 +1,25 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+// Supabase/PostgREST cappea cada respuesta a ~1000 filas sin importar el
+// .range() pedido. Para traer tablas grandes (predictions, participants) hay
+// que paginar en loop, sino las cuentas quedan truncadas silenciosamente.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchAll<T>(supabase: any, table: string, columns: string): Promise<T[]> {
+  const pageSize = 1000
+  let from = 0
+  const all: T[] = []
+  while (true) {
+    const { data, error } = await supabase.from(table).select(columns).range(from, from + pageSize - 1)
+    if (error) throw error
+    if (!data || data.length === 0) break
+    all.push(...(data as T[]))
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+  return all
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   if (searchParams.get('password') !== process.env.ADMIN_PASSWORD) {
@@ -12,21 +31,22 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const [
-    { data: participants, count: totalParticipants },
-    { data: predictions },
-    { data: matches },
-    { data: bonusPredictions },
-  ] = await Promise.all([
-    supabase
-      .from('participants')
-      .select('id, name, email, phone, apodo, instagram_user, instagram_confirmed, total_chimichurros, streak, created_at, device_id', { count: 'exact' })
-      .order('total_chimichurros', { ascending: false })
-      .range(0, 9999),
-    supabase.from('predictions').select('participant_id, match_id, chimichurros_earned').range(0, 9999),
+  interface ParticipantRow {
+    id: string; name: string; email: string; phone: string; apodo: string | null
+    instagram_user: string | null; instagram_confirmed: boolean; total_chimichurros: number
+    streak: number; created_at: string; device_id: string | null
+  }
+  interface PredictionRow { participant_id: string; match_id: string; chimichurros_earned: number }
+  interface BonusRow { participant_id: string; tournament_winner: string | null; top_scorer: string | null }
+
+  const [participants, predictions, { data: matches }, bonusPredictions] = await Promise.all([
+    fetchAll<ParticipantRow>(supabase, 'participants', 'id, name, email, phone, apodo, instagram_user, instagram_confirmed, total_chimichurros, streak, created_at, device_id'),
+    fetchAll<PredictionRow>(supabase, 'predictions', 'participant_id, match_id, chimichurros_earned'),
     supabase.from('matches').select('*').order('match_date', { ascending: true }),
-    supabase.from('bonus_predictions').select('participant_id, tournament_winner, top_scorer'),
+    fetchAll<BonusRow>(supabase, 'bonus_predictions', 'participant_id, tournament_winner, top_scorer'),
   ])
+  participants.sort((a, b) => b.total_chimichurros - a.total_chimichurros)
+  const totalParticipants = participants.length
 
   const matchesAll = matches ?? []
   const matchesFinished = matchesAll.filter(m => m.status === 'finished')
