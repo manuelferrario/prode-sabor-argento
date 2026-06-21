@@ -137,7 +137,8 @@ returns void as $$
 declare
   match_record matches%rowtype;
   pred record;
-  earned integer;
+  base_earned integer;
+  total_earned integer;
   new_streak integer;
   streak_row record;
 begin
@@ -150,7 +151,7 @@ begin
   for pred in
     select * from predictions where match_id = match_id_param
   loop
-    earned := calculate_chimichurros(
+    base_earned := calculate_chimichurros(
       pred.predicted_home,
       pred.predicted_away,
       match_record.home_score,
@@ -158,31 +159,39 @@ begin
       match_record.went_to_penalties
     );
 
-    -- Recalcula la racha desde cero recorriendo TODOS los partidos terminados
-    -- (no solo los que predijo). Un partido sin predicción cuenta como 0 y corta la racha.
+    -- Racha: recorre TODOS los partidos terminados y recalcula el puntaje BASE
+    -- de cada uno al vuelo (predicción vs resultado real). Nunca confía en
+    -- chimichurros_earned ya guardado — así el cálculo es siempre idempotente
+    -- y no se contamina con bonus de corridas anteriores.
     new_streak := 0;
     for streak_row in (
-      select coalesce(p.chimichurros_earned, 0) as earned
+      select
+        case
+          when p.predicted_home is null then 0
+          else calculate_chimichurros(p.predicted_home, p.predicted_away, m.home_score, m.away_score, m.went_to_penalties)
+        end as base
       from matches m
       left join predictions p
         on p.match_id = m.id and p.participant_id = pred.participant_id
       where m.status = 'finished'
+        and m.home_score is not null and m.away_score is not null
       order by m.match_date desc
     ) loop
-      if streak_row.earned > 0 then
+      if streak_row.base > 0 then
         new_streak := new_streak + 1;
       else
         exit;
       end if;
     end loop;
 
-    -- Bonus de racha: cada 5 aciertos consecutivos (se guarda en la predicción)
+    -- Bonus de racha: cada 5 aciertos consecutivos
+    total_earned := base_earned;
     if new_streak > 0 and new_streak % 5 = 0 then
-      earned := earned + 3;
+      total_earned := total_earned + 3;
     end if;
 
     update predictions
-    set chimichurros_earned = earned
+    set chimichurros_earned = total_earned
     where id = pred.id;
 
     update participants
