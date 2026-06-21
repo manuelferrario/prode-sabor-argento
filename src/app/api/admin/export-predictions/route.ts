@@ -23,11 +23,22 @@ export async function GET(request: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  const [{ data: participants }, { data: predictions }, { data: matches }] = await Promise.all([
+  const [
+    { data: participants, error: participantsError },
+    { data: predictions, error: predictionsError },
+    { data: matches, error: matchesError },
+  ] = await Promise.all([
     supabase.from('participants').select('id, name, email, total_chimichurros, streak, max_streak').range(0, 9999),
     supabase.from('predictions').select('participant_id, match_id, predicted_home, predicted_away, chimichurros_earned').range(0, 9999),
-    supabase.from('matches').select('id, team_home, team_away, home_score, away_score, status, round, match_date'),
+    supabase.from('matches').select('id, team_home, team_away, home_score, away_score, status, round, match_date').range(0, 9999),
   ])
+
+  const debugLines = [
+    `DEBUG: participants=${participants?.length ?? 'null'} (error: ${participantsError?.message ?? 'ninguno'})`,
+    `DEBUG: predictions=${predictions?.length ?? 'null'} (error: ${predictionsError?.message ?? 'ninguno'})`,
+    `DEBUG: matches=${matches?.length ?? 'null'} (error: ${matchesError?.message ?? 'ninguno'})`,
+    `DEBUG: matches_finished=${(matches ?? []).filter(m => m.status === 'finished').length}`,
+  ]
 
   const matchMap = new Map((matches ?? []).map(m => [m.id, m]))
   const participantMap = new Map((participants ?? []).map(p => [p.id, p]))
@@ -93,7 +104,7 @@ export async function GET(request: Request) {
     ...summaryRows,
   ].map(r => r.map(csvEscape).join(',')).join('\n')
 
-  const csv = `RESUMEN POR PARTICIPANTE\n${summaryCsv}\n\nDETALLE PARTIDO POR PARTIDO\n${detailCsv}`
+  const csv = `${debugLines.join('\n')}\n\nRESUMEN POR PARTICIPANTE\n${summaryCsv}\n\nDETALLE PARTIDO POR PARTIDO\n${detailCsv}`
 
   const filename = `verificacion-prode-${new Date().toISOString().split('T')[0]}.csv`
   return new Response(csv, {
