@@ -139,6 +139,7 @@ declare
   pred record;
   earned integer;
   new_streak integer;
+  streak_row record;
 begin
   select * into match_record from matches where id = match_id_param;
 
@@ -157,19 +158,27 @@ begin
       match_record.went_to_penalties
     );
 
-    -- Racha: solo suma si esta predicción ganó puntos (1 o 3). Si no, se rompe.
-    select streak into new_streak from participants where id = pred.participant_id;
-
-    if earned > 0 then
-      new_streak := new_streak + 1;
-    else
-      new_streak := 0;
-    end if;
+    -- Recalcula la racha desde cero recorriendo TODOS los partidos terminados
+    -- (no solo los que predijo). Un partido sin predicción cuenta como 0 y corta la racha.
+    new_streak := 0;
+    for streak_row in (
+      select coalesce(p.chimichurros_earned, 0) as earned
+      from matches m
+      left join predictions p
+        on p.match_id = m.id and p.participant_id = pred.participant_id
+      where m.status = 'finished'
+      order by m.match_date desc
+    ) loop
+      if streak_row.earned > 0 then
+        new_streak := new_streak + 1;
+      else
+        exit;
+      end if;
+    end loop;
 
     -- Bonus de racha: cada 5 aciertos consecutivos (se guarda en la predicción)
     if new_streak > 0 and new_streak % 5 = 0 then
       earned := earned + 3;
-      new_streak := 0; -- resetea para poder ganar de nuevo
     end if;
 
     update predictions
