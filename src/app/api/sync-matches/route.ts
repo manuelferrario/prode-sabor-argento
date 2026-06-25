@@ -99,11 +99,15 @@ export async function GET(request: Request) {
       }
     }
 
-    // 2. Recalcular chimichurros para partidos terminados
+    // 2. Recalcular chimichurros para partidos terminados — SIEMPRE en orden
+    // cronológico. Cada llamada sobreescribe participants.streak con el valor
+    // calculado para ese partido puntual; si se procesan fuera de orden, el
+    // último partido del loop pisa el cálculo de partidos más recientes.
     const { data: finishedMatches } = await supabase
       .from('matches')
       .select('id')
       .eq('status', 'finished')
+      .order('match_date', { ascending: true })
 
     for (const match of finishedMatches ?? []) {
       await supabase.rpc('update_chimichurros_for_match', { match_id_param: match.id })
