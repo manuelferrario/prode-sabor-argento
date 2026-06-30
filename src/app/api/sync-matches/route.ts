@@ -65,11 +65,14 @@ export async function GET(request: Request) {
       const status = m.status === 'FINISHED' ? 'finished'
         : m.status === 'IN_PLAY' || m.status === 'PAUSED' ? 'live'
         : 'upcoming'
-      // Para el prode usamos el resultado antes de penales: si hubo tiempo
-      // extra, ese es el marcador final (incluye los goles del alargue).
-      // Los penales NUNCA cuentan como resultado — solo deciden quién avanza.
-      const homeScore = m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null
-      const awayScore = m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null
+      // football-data.org reporta en "fullTime" el marcador final de los 120
+      // minutos (incluye alargue si lo hubo) — NUNCA incluye los penales.
+      // "extraTime" en su API representa solo los goles del alargue por
+      // separado, no el acumulado: usarlo como reemplazo de fullTime
+      // pisaba el resultado real con un marcador incompleto (ej. 0-0
+      // cuando el partido había terminado 1-1 y el alargue no sumó goles).
+      const homeScore = m.score?.fullTime?.home ?? null
+      const awayScore = m.score?.fullTime?.away ?? null
       const round = STAGE_MAP[m.stage] ?? 'group'
 
       // Actualizar equipo si ya se conoce (para llaves finales)
