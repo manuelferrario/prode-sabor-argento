@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { flagCodeForTeam } from '@/lib/flags'
 
 // Cron job o llamada manual para sincronizar partidos y resultados
 // Llamar desde Vercel Cron: GET /api/sync-matches
@@ -64,15 +65,24 @@ export async function GET(request: Request) {
       const status = m.status === 'FINISHED' ? 'finished'
         : m.status === 'IN_PLAY' || m.status === 'PAUSED' ? 'live'
         : 'upcoming'
-      const homeScore = m.score?.fullTime?.home ?? null
-      const awayScore = m.score?.fullTime?.away ?? null
+      // Para el prode usamos el resultado antes de penales: si hubo tiempo
+      // extra, ese es el marcador final (incluye los goles del alargue).
+      // Los penales NUNCA cuentan como resultado — solo deciden quién avanza.
+      const homeScore = m.score?.extraTime?.home ?? m.score?.fullTime?.home ?? null
+      const awayScore = m.score?.extraTime?.away ?? m.score?.fullTime?.away ?? null
       const round = STAGE_MAP[m.stage] ?? 'group'
 
       // Actualizar equipo si ya se conoce (para llaves finales)
       const updateData: Record<string, unknown> = { status }
 
-      if (homeTeam !== 'TBD') updateData.team_home = homeTeam
-      if (awayTeam !== 'TBD') updateData.team_away = awayTeam
+      if (homeTeam !== 'TBD') {
+        updateData.team_home = homeTeam
+        updateData.team_home_flag = flagCodeForTeam(homeTeam)
+      }
+      if (awayTeam !== 'TBD') {
+        updateData.team_away = awayTeam
+        updateData.team_away_flag = flagCodeForTeam(awayTeam)
+      }
       if (homeScore !== null) updateData.home_score = homeScore
       if (awayScore !== null) updateData.away_score = awayScore
 
