@@ -465,7 +465,7 @@ export default function ProdeClient({ participant, matches, predictions, bonusPr
                 {visibleMatches.map((match) => {
                   const locked = isLocked(match)
                   const pred = predMap[match.id]
-                  const hasPred = pred?.home !== '' && pred?.away !== ''
+                  const hasPred = !!pred && pred.home !== '' && pred.away !== ''
                   const idx = allMatchIds.indexOf(match.id)
                   const nextMatchId = allMatchIds[idx + 1]
 
