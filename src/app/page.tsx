@@ -42,6 +42,104 @@ const PRIZE_PHOTOS: { src: string; label: string }[] = [
   { src: '/5-chimis.jpeg',          label: '5 Chimis Sabor Argento' },
 ]
 
+interface TopWinner {
+  name: string
+  apodo: string | null
+  total_chimichurros: number
+  max_streak: number
+  bonus: { tournament_winner: string | null; top_scorer: string | null } | null
+}
+
+const WINNER_MEDALS = ['🥇', '🥈', '🥉']
+const WINNER_COLORS = ['var(--dorado)', '#c0c0c0', '#cd7f32']
+const WINNER_BORDERS = ['rgba(246,180,14,0.4)', 'rgba(192,192,192,0.3)', 'rgba(205,127,50,0.3)']
+const WINNER_BG = ['rgba(246,180,14,0.07)', 'rgba(192,192,192,0.05)', 'rgba(205,127,50,0.05)']
+
+function TopWinners({ winners }: { winners: TopWinner[] }) {
+  if (winners.length === 0) return null
+
+  return (
+    <section className="px-5 pt-14 pb-10 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center gap-3 px-6 py-3 mb-4" style={{
+          background: 'rgba(0,155,58,0.1)',
+          border: '2px solid rgba(0,155,58,0.4)',
+          boxShadow: '0 4px 0 rgba(0,110,41,0.5)',
+        }}>
+          <span className="text-2xl">🎉</span>
+          <span className="font-brand text-white" style={{ fontSize: '30px', fontWeight: 900, letterSpacing: '2px' }}>
+            SE ACABÓ EL PRODE
+          </span>
+          <span className="text-2xl">🎉</span>
+        </div>
+        <p className="font-pixel text-white/35 mt-3" style={{ fontSize: '8px', letterSpacing: '2px' }}>
+          FELICITACIONES A LOS GANADORES
+        </p>
+      </div>
+
+      <div className="max-w-sm mx-auto flex flex-col gap-4">
+        {winners.map((w, i) => {
+          const acertoCampeon = w.bonus?.tournament_winner?.toLowerCase() === 'españa'
+          const acertoGoleador = w.bonus?.top_scorer?.toLowerCase() === 'lionel messi'
+          return (
+            <div
+              key={w.name + i}
+              className={`p-5 anim-reveal-${Math.min(i + 1, 4)}`}
+              style={{
+                background: WINNER_BG[i],
+                border: `2px solid ${WINNER_BORDERS[i]}`,
+                boxShadow: `0 4px 0 ${WINNER_BORDERS[i]}`,
+              }}
+            >
+              <div className="flex items-center gap-3 mb-3 pb-3" style={{ borderBottom: `1px solid ${WINNER_BORDERS[i]}` }}>
+                <span style={{ fontSize: i === 0 ? '40px' : '32px' }}>{WINNER_MEDALS[i]}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-pixel text-white/30" style={{ fontSize: '8px', letterSpacing: '2px' }}>PUESTO {i + 1}</p>
+                  <p className="font-brand text-white truncate" style={{ fontSize: i === 0 ? '24px' : '20px', fontWeight: 900, lineHeight: 1.15 }}>
+                    {w.name}
+                    {w.apodo && (
+                      <span style={{ color: WINNER_COLORS[i] }}> &quot;{w.apodo}&quot;</span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 flex-shrink-0"
+                  style={{ background: 'rgba(246,180,14,0.1)', border: '1px solid rgba(246,180,14,0.3)' }}>
+                  <span className="text-sm">🫙</span>
+                  <span className="font-pixel" style={{ fontSize: '13px', color: 'var(--dorado)' }}>{w.total_chimichurros}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <span className="font-pixel" style={{ fontSize: '7px', color: 'rgba(255,255,255,0.5)',
+                  background: 'rgba(255,255,255,0.05)', padding: '4px 8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  🔥 RACHA MAX {w.max_streak}
+                </span>
+                {acertoCampeon && (
+                  <span className="font-pixel" style={{ fontSize: '7px', color: '#009B3A',
+                    background: 'rgba(0,155,58,0.1)', padding: '4px 8px', border: '1px solid rgba(0,155,58,0.3)' }}>
+                    ✓ ACERTÓ CAMPEÓN
+                  </span>
+                )}
+                {acertoGoleador && (
+                  <span className="font-pixel" style={{ fontSize: '7px', color: '#009B3A',
+                    background: 'rgba(0,155,58,0.1)', padding: '4px 8px', border: '1px solid rgba(0,155,58,0.3)' }}>
+                    ✓ ACERTÓ GOLEADOR
+                  </span>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <p className="text-center text-white/40 text-sm mt-8 max-w-sm mx-auto">
+        Gracias a todos los que jugaron el prode de Sabor Argento durante el Mundial 2026.
+        ¡Nos vemos en la próxima!
+      </p>
+    </section>
+  )
+}
+
 function PrizePodium({ prizes }: { prizes: typeof PRIZES }) {
   return (
     <div className="max-w-sm mx-auto flex flex-col gap-5">
@@ -123,8 +221,32 @@ export default function HomePage() {
   const [sprites, setSprites] = useState<FlyingConfig[]>(SSR_SPRITES)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [participantCount, setParticipantCount] = useState<number | null>(null)
+  const [topWinners, setTopWinners] = useState<TopWinner[]>([])
 
   useEffect(() => { setSprites(getRandomSprites()) }, [])
+
+  useEffect(() => {
+    createClient()
+      .from('participants')
+      .select('name, apodo, total_chimichurros, max_streak, bonus_predictions(tournament_winner, top_scorer)')
+      .order('total_chimichurros', { ascending: false })
+      .limit(3)
+      .then(({ data }) => {
+        if (!data) return
+        setTopWinners(
+          data.map(p => {
+            const bonusRaw = Array.isArray(p.bonus_predictions) ? p.bonus_predictions[0] : p.bonus_predictions
+            return {
+              name: p.name,
+              apodo: p.apodo,
+              total_chimichurros: p.total_chimichurros,
+              max_streak: p.max_streak,
+              bonus: bonusRaw ?? null,
+            }
+          })
+        )
+      })
+  }, [])
 
   useEffect(() => {
     createClient()
@@ -282,6 +404,9 @@ export default function HomePage() {
           <div className="flex-1" style={{ background: 'rgba(0,0,0,0.2)' }} />
         </div>
       </section>
+
+      {/* TOP 3 — cierre del torneo, antes de los premios */}
+      <TopWinners winners={topWinners} />
 
       {/* PREMIOS — sección hero, bien visible */}
       <section className="px-5 pt-12 pb-8 border-t" style={{ borderColor: 'var(--border)' }}>
