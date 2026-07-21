@@ -44,7 +44,6 @@ const PRIZE_PHOTOS: { src: string; label: string }[] = [
 
 interface TopWinner {
   name: string
-  apodo: string | null
   total_chimichurros: number
   max_streak: number
   bonus: { tournament_winner: string | null; top_scorer: string | null } | null
@@ -97,9 +96,6 @@ function TopWinners({ winners }: { winners: TopWinner[] }) {
                   <p className="font-pixel text-white/30" style={{ fontSize: '8px', letterSpacing: '2px' }}>PUESTO {i + 1}</p>
                   <p className="font-brand text-white truncate" style={{ fontSize: i === 0 ? '24px' : '20px', fontWeight: 900, lineHeight: 1.15 }}>
                     {w.name}
-                    {w.apodo && (
-                      <span style={{ color: WINNER_COLORS[i] }}> &quot;{w.apodo}&quot;</span>
-                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 flex-shrink-0"
@@ -228,7 +224,7 @@ export default function HomePage() {
   useEffect(() => {
     createClient()
       .from('participants')
-      .select('name, apodo, total_chimichurros, max_streak, bonus_predictions(tournament_winner, top_scorer)')
+      .select('name, total_chimichurros, max_streak, bonus_predictions(tournament_winner, top_scorer)')
       .order('total_chimichurros', { ascending: false })
       .limit(3)
       .then(({ data }) => {
@@ -238,7 +234,6 @@ export default function HomePage() {
             const bonusRaw = Array.isArray(p.bonus_predictions) ? p.bonus_predictions[0] : p.bonus_predictions
             return {
               name: p.name,
-              apodo: p.apodo,
               total_chimichurros: p.total_chimichurros,
               max_streak: p.max_streak,
               bonus: bonusRaw ?? null,
